@@ -1,175 +1,416 @@
 <script setup>
-import {computed, onMounted, ref} from 'vue';
+import {nextTick, onMounted, ref,watch} from 'vue';
 import axios from 'axios';
-import Echo from 'laravel-echo';
-const echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: window.location.hostname,
-    wsPort: 8080,
-    forceTLS: false,
-    disableStats: true,
+const props = defineProps(['friend', 'current_user','friends','rooms']);
+
+// const messages = ref([]);
+const newMessage = ref("");
+const messagesContainer = ref(null);
+const isFriendTyping = ref(false);
+const isFriendTypingTimer = ref(null);
+// const friends = ref([...props.friends])
+const selectedRoom = ref({
+    room_id: '',
+    other_user: {  },
+    messages: []
 });
-const props = defineProps(['user', 'sentMessages','receivedMessages','all_users']);
-
-        const authUser = props.user || 'No auth user';
-        const allUsers = props.all_users;
-        const newMessage = ref('');
-        const selectedUser = ref(null);
-
-        const sentMessages = props.sentMessages;
-        const receivedMessages = props.receivedMessages;
-
-        const selectUser = (userId) => {
-            selectedUser.value = userId;
-            checkNewMessages()
-        };
-
-        const selectedUserById = computed(() => {
-            const user = props.all_users.find(user => user.id === selectedUser.value);
-            return user ? user.name : 'No user selected';
-        });
-        const sendMessage = async () => {
-            await axios.post('/api/post-messages', {
-                sender_id: authUser.id,
-                recipient_id: selectedUser.value,
-                message: newMessage.value,
+const rooms = ref([...props.rooms]);
+watch(
+    () => selectedRoom.value.messages,
+    () => {
+        nextTick(() => {
+            messagesContainer.value.scrollTo({
+                top: messagesContainer.value.scrollHeight,
+                behavior: "smooth",
             });
-            // newMessage.value = '';
-        };
-        const checkNewMessages = () => {
-            if (props.user && selectedUser.value) {
-                console.log(props.user.id, selectedUser.value)
-                echo.private(`chat.${props.user.id}.${selectedUser.value}`)
-                    .listen('MessageSent', (e) => {
-                        const message = e.message;
-
-                        if (message.sender_id === props.user.id && message.recipient_id === selectedUser.value) {
-                            sentMessages.value.push(message);
-                        } else if (message.recipient_id === props.user.id && message.sender_id === selectedUser.value) {
-                            receivedMessages.value.push(message);
-                        }
-                    });
-            }
-        }
-
-        onMounted(() => {
-
         });
+    },
+    { deep: true }
+);
+const loadOnlineStatus = () => {
+    const storedStatus = JSON.parse(localStorage.getItem('friendsStatus'));
+    if (storedStatus) {
+        friends.value.forEach(friend => {
+            const status = storedStatus.find(s => s.id === friend.id);
+            if (status) {
+                friend.is_online = status.is_online;
+            }
+        });
+    }
+};
+// localStorage
+const saveOnlineStatus = () => {
+    const statusToStore = friends.value.map(friend => ({
+        id: friend.id,
+        is_online: friend.is_online
+    }));
+    localStorage.setItem('friendsStatus', JSON.stringify(statusToStore));
+};
+const getLastMessage = (messages) => {
+    return messages.length > 0 ? messages[messages.length - 1].message : 'No Messages';
+};
+
+const sendMessage = () => {
+    if (newMessage.value.trim() !== "" && selectedRoom.value.room_id) {
+        axios.post(`/chat/room/${selectedRoom.value.room_id}/send`, {
+                message: newMessage.value,
+            })
+            .then((response) => {
+                console.log('sent_msg',response.data)
+                selectedRoom.value.messages.push(response.data);
+                console.log('Updated selectedRoom:', selectedRoom.value);
+                newMessage.value = "";
+            });
+    }
+};
+const selectRoom = (room) => {
+    selectedRoom.value = room;
+    connectToChannel(room.room_id);
+    console.log('When selected',selectedRoom.value)
+};
+
+const connectToChannel = (roomId) => {
+    console.log('connectToChannel',roomId)
+    Echo.private(`chat.room.${roomId}`)
+        .listen("MessageSent", (event) => {
+            console.log(`channel.room.${roomId}`,event)
+            selectedRoom.value.messages.push(event);
+            console.log('Updated selectedRoom',selectedRoom.value)
+        })
+        .listenForWhisper("typing", (event) => {
+            console.log(event)
+            isFriendTyping.value = event.userID === selectedRoom.value.other_user.id;
+
+            if (isFriendTypingTimer.value) {
+                clearTimeout(isFriendTypingTimer.value);
+            }
+            isFriendTypingTimer.value = setTimeout(() => {
+                isFriendTyping.value = false;
+            }, 1000);
+        });
+}
+// const connectToPresenceChannel = () => {
+//     Echo.join('presence-chat.main')
+//         .here((users) => {
+//             // Check all friends online
+//             users.forEach((user) => {
+//                 const friend = friends.value.find(f => f.id === user.id);
+//                 if (friend) {
+//                     friend.is_online = true;
+//                 }
+//             });
+//             saveOnlineStatus();
+//         })
+//         .joining((user) => {
+//             // Check joining friends
+//             const friend = friends.value.find(f => f.id === user.id);
+//             if (friend) {
+//                 friend.is_online = true;
+//                 saveOnlineStatus();
+//             }
+//         })
+//         .leaving((user) => {
+//             // Check leaving friends
+//             const friend = friends.value.find(f => f.id === user.id);
+//             if (friend) {
+//                 friend.is_online = false;
+//                 saveOnlineStatus();
+//             }
+//         });
+// }
+const sendTypingEvent = () => {
+    Echo.private(`chat.${props.current_user.id}`).whisper("typing", {
+        userID: selectedRoom.value.other_user.id,
+    });
+};
+onMounted(() => {
+    // fetchMessages()
+    // connectToChannel()
+    // connectToPresenceChannel()
+    // loadOnlineStatus()
+    console.log( rooms.value)
+});
 
 </script>
 
 <template>
-    <div class="container text-center m-48">
 
-        <div class="grid grid-cols-4 gap-4 text-end">
-            <div class="col-span-1 p-4 ">
-                <!-- First Column: 25% Width -->
-                <div class="flex">
-                    <!-- List of all users-->
-                    <!-- Sidebar -->
-                    <div class="w-full bg-white shadow-lg p-4">
-                        <h2 class="text-xl font-semibold mb-4">Users</h2>
-                        <ul class="space-y-2">
-                            <li
-                                v-for="user in allUsers"
-                                :key="user.id"
-                                class="flex items-center justify-between p-2 bg-gray-200 rounded hover:bg-gray-300 transition cursor-pointer"
-                                @click="selectUser(user.id)"
-                            >
-                                <span class="font-medium">{{ user.name }}</span>
-                                <button class="btn text-blue-500 hover:underline">Send</button>
-                            </li>
-                        </ul>
+    <div class="container mx-auto border my-8">
+        <!--Test/-->
+<!--        <div class="chat-app">-->
+<!--            &lt;!&ndash; Список комнат &ndash;&gt;-->
+<!--            <div class="room-list">-->
+<!--                <h3>Чаты</h3>-->
+<!--                <ul>-->
+<!--                    <li-->
+<!--                        v-for="room in rooms"-->
+<!--                        :key="room.id"-->
+<!--                        @click="selectRoom(room)"-->
+<!--                        :class="{ 'selected': selectedRoom && selectedRoom.id === room.id }"-->
+<!--                    >-->
+<!--                        <span class="bg-gray-200 cursor-pointer">{{ room.other_user.name }}</span>-->
+<!--                        <span v-if="room.other_user.is_online" class="online-status">Online</span>-->
+<!--                    </li>-->
+<!--                </ul>-->
+<!--            </div>-->
+
+<!--            <div class="chat-window" v-if="selectedRoom">-->
+<!--                <h3 class="bg-blue-100">Чат с {{ selectedRoom.other_user.name }}</h3>-->
+
+<!--                &lt;!&ndash; Список сообщений &ndash;&gt;-->
+<!--                <div ref="messagesContainer" class="messages-container">-->
+<!--                    <div v-for="message in selectedRoom.messages" :key="message.id" :class="{'my-message': message.sender_id === current_user.id}">-->
+<!--                        <div v-if="message.sender_id === selectedRoom.other_user.id " class="sender bg-gray-200">sender=other_user{{selectedRoom.other_user.name}}-->
+<!--                            <p class="text">{{ message.message }}</p>-->
+<!--                        </div>-->
+<!--                        <div v-if="message.sender_id === props.current_user.id" class="sender bg-blue-200">sender=current_user-{{props.current_user.name}}-->
+<!--                            <p class="text">{{ message.message }}</p>-->
+<!--                        </div>-->
+<!--&lt;!&ndash;                        <span class="timestamp">{{ message.formatted_time }}</span>&ndash;&gt;-->
+<!--                    </div>-->
+<!--                </div>-->
+
+<!--                <form @submit.prevent="sendMessage">-->
+<!--                    <input type="text" v-model="newMessage" placeholder="Введите сообщение..." @input="sendTypingEvent"/>-->
+<!--                    <button type="submit">Отправить</button>-->
+<!--                </form>-->
+<!--            </div>-->
+<!--        </div>-->
+
+
+
+
+<!--         component -->
+        <div class="flex h-screen overflow-hidden">
+            <!-- Sidebar -->
+            <div class="w-1/4 bg-white border-r border-gray-300">
+                <!-- Sidebar Header -->
+                <header class="p-4 border-b border-gray-300 flex justify-between items-center bg-indigo-500 text-white">
+                    <h1 class="text-2xl font-semibold">Chat Web</h1>
+                    <div class="relative">
+                        <button id="menuButton" class="focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-100" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                <path d="M2 10a2 2 0 012-2h12a2 2 0 012 2 2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+                            </svg>
+                        </button>
+                        <!-- Menu Dropdown -->
+                        <div id="menuDropdown" class="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-md shadow-lg hidden">
+                            <ul class="py-2 px-3">
+                                <li><a href="#" class="block px-4 py-2 text-gray-800 hover:text-gray-400">Option 1</a></li>
+                                <li><a href="#" class="block px-4 py-2 text-gray-800 hover:text-gray-400">Option 2</a></li>
+                                <!-- Add more menu options here -->
+                            </ul>
+                        </div>
                     </div>
+                </header>
+
+                <!-- Contact List -->
+                <div class="overflow-y-auto h-screen p-3 mb-9 pb-20">
+                    <div v-for="room in rooms"
+                         :key="room.id"
+                         @click="selectRoom(room)"
+                         :class="{ 'selected': selectedRoom && selectedRoom.id === room.id }"
+                         class="flex items-center mb-4 cursor-pointer hover:bg-gray-100 p-2 rounded-md"
+                    >
+                        <div class="w-12 h-12 bg-gray-300 rounded-full mr-3">
+                            <img :src="room.other_user.image" alt="User Avatar" class="w-12 h-12 rounded-full">
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-lg font-semibold">{{room.other_user.name}}</h2>
+                            <p class="text-gray-600">{{ getLastMessage(room.messages) }}</p>
+                        </div>
+                    </div>
+
+
+
                 </div>
             </div>
 
+            <!-- Main Chat Area -->
+            <div class="flex-1 relative">
+                <!-- Chat Header -->
+                <header v-if="selectedRoom" class="bg-white p-4 text-gray-700 border-b">
+                    <h1 class="text-2xl font-semibold text-center ">{{selectedRoom.other_user.name}}</h1>
+                </header>
 
-            <div class="col-span-3 p-4">
-                <!-- Second Column: 75% Width -->
-                <!-- Chat bubble right-->
-                <div v-for="message in sentMessages" :key="message.id" class="bg-blue-200 flex items-start justify-end gap-2.5  mb-10">
-                    <img class="w-8 h-8 rounded-full" src="" alt="Jese image">
-                    <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
-                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                            <span class="text-sm font-semibold text-gray-900">{{ message.username }}</span>
-                            <span class="text-sm font-normal text-gray-500">11:46</span>
+                <!-- Chat Messages -->
+                <div
+                    v-if="selectedRoom"
+                    ref="messagesContainer"
+                    class="overflow-y-auto lg:h-[500px]"
+                >
+                    <div
+                        v-for="message in selectedRoom.messages"
+                        :key="message.id"
+                        class=" p-2 "
+                    >
+                        <!-- Incoming Message -->
+                        <div v-if="message.sender_id === selectedRoom.other_user.id" class="flex mb-4">
+                            <div class="w-9 h-9 rounded-full flex items-center justify-center mr-2">
+                                <img :src="selectedRoom.other_user.image" alt="User Avatar" class="w-8 h-8 rounded-full">
+                            </div>
+                            <div class="flex max-w-96 bg-gray-200 rounded-lg p-3 gap-3">
+                                <p class="text-gray-700">{{message.message}}</p>
+                            </div>
                         </div>
-                        <p class="text-sm font-normal py-2.5 text-gray-900">{{ message.message }}</p>
-                        <span class="text-sm font-normal text-gray-500">Delivered</span>
+
+                        <!-- Outgoing Message -->
+                        <div v-else class="flex justify-end mb-4">
+                            <div class="flex max-w-96 bg-indigo-500 text-white rounded-lg p-3 gap-3">
+                                <p>{{ message.message }}</p>
+                            </div>
+                            <div class="w-9 h-9 rounded-full flex items-center justify-center ml-2">
+                                <img :src="props.current_user.image" alt="My Avatar" class="w-8 h-8 rounded-full">
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
-                <div v-for="message in receivedMessages" :key="message.id" class="bg-red-200 flex items-start justify-end gap-2.5  mb-10">
-                    <img class="w-8 h-8 rounded-full" src="" alt="Jese image">
-                    <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
-                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                            <span class="text-sm font-semibold text-gray-900">{{ message.username }}</span>
-                            <span class="text-sm font-normal text-gray-500">11:46</span>
-                        </div>
-                        <p class="text-sm font-normal py-2.5 text-gray-900">{{ message.message }}</p>
-                        <span class="text-sm font-normal text-gray-500">Delivered</span>
+                                <div v-if="isFriendTyping" class="typing-indicator">
+                                    {{ selectedRoom.other_user.name }} typing...
+                                </div>
+<!--                @input="sendTypingEvent"-->
+                <!-- Chat Input -->
+                <form @submit.prevent="sendMessage" class="bg-white border-t border-gray-300 p-4 absolute bottom-0 w-full">
+                    <div class="flex items-center">
+                        <input
+                            v-model="newMessage"
+                            type="text"
+                            placeholder="Type a message..."
+                            class="w-full p-2 rounded-md border border-gray-400 focus:outline-none focus:border-blue-500"
+                            @input="sendTypingEvent"
+                        >
+                        <button type="submit" class="bg-indigo-500 text-white px-4 py-2 rounded-md ml-2">Send</button>
                     </div>
-                </div>
-
+                </form>
             </div>
         </div>
 
 
 
+<!--        Old-->
+<!--        <div class="flex gap-10">-->
+<!--            <div class="w-1/4 p-4">-->
+
+<!--            &lt;!&ndash;List of all friends&ndash;&gt;-->
+<!--                    <ul class="max-w-md divide-y divide-gray-200 dark:divide-gray-700 p-3">-->
+<!--                        <li v-for="user in friends" :key="user.id" class="py-3 sm:pb-4">-->
+<!--                            <a :href="`/chat/${user.id}`" class="flex items-center space-x-4 rtl:space-x-reverse">-->
+<!--                                <div class="flex-shrink-0 relative">-->
+<!--                                    <img class="w-8 h-8 rounded-full" :src="user.image" alt="Neil image">-->
+<!--                                    <span v-if="user.is_online" class="top-0 left-7 absolute w-3.5 h-3.5 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></span>-->
+<!--                                </div>-->
+<!--                                <div class="flex-1 min-w-0">-->
+<!--                                    <p class="text-sm font-medium text-gray-900 truncate dark:text-white">-->
+<!--                                        {{user.name}}-->
+<!--                                    </p>-->
+<!--                                    <p class="text-sm text-gray-500 truncate dark:text-gray-400">-->
+<!--                                        {{user.email}}-->
+<!--                                    </p>-->
+<!--                                </div>-->
+<!--                                <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">-->
+<!--                                </div>-->
+<!--                            </a>-->
+<!--                        </li>-->
+<!--                    </ul>-->
+<!--            </div>-->
+
+
+<!--        <div class=" sm:w-3/4 lg:w-3/4 mx-auto ">-->
+
+<!--            &lt;!&ndash; Chat messages container &ndash;&gt;-->
+<!--            <div class=" flex flex-col h-96 justify-end border border-gray-300 rounded-lg shadow-md overflow-hidden"-->
+<!--                 :style="{ backgroundImage: `url(https://support.delta.chat/uploads/default/original/1X/768ded5ffbef90faa338761be1c5633d91cc35e3.jpeg)` }"-->
+<!--            >-->
+<!--                <header class="bg-blue-300 w-full py-4 text-center text-gray-600 text-2xl font-bold">-->
+<!--                    {{friend.name}}-->
+<!--                </header>-->
+<!--&lt;!&ndash;                ref="messagesContainer"&ndash;&gt;-->
+<!--                <div  class="flex-1 p-2 overflow-y-auto ">-->
+
+<!--                    &lt;!&ndash;Sent Messages (Right Block)&ndash;&gt;-->
+<!--                    <div-->
+<!--                        v-for="message in messages"-->
+<!--                        :key="message.id"-->
+<!--                        class="">-->
+<!--                        <div-->
+<!--                            v-if="message.sender.id === current_user.id"-->
+<!--                            class="flex justify-end items-start gap-2.5 mb-5 mr-5"-->
+<!--                        >-->
+<!--                            <div class="relative">-->
+<!--                                <img class=" w-12 h-12 rounded-full" :src="message.sender.image" alt="Jese image">-->
+<!--                                <span class="top-0 left-7 absolute w-3.5 h-3.5 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></span>-->
+<!--                            </div>-->
+<!--                            <div class="text-white bg-blue-200 rounded-lg sm:max-w-md flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 rounded-e-xl rounded-es-xl dark:bg-gray-700">-->
+<!--                                <div class="flex items-center space-x-2 rtl:space-x-reverse">-->
+<!--                                    <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ message.sender.name }}</span>-->
+<!--                                    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">{{ message.formatted_time }}</span>-->
+<!--                                    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">{{ message.formatted_date }}</span>-->
+<!--                                </div>-->
+<!--                                <p class="text-sm font-normal py-2.5 text-gray-900 dark:text-white">{{ message.message }}</p>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                        &lt;!&ndash;Received Messages (Left Block)&ndash;&gt;-->
+<!--                        <div-->
+<!--                            v-else-->
+<!--                            class="flex justify-start items-start gap-2.5 mb-5 ml-5"-->
+<!--                        >-->
+<!--                            <div class="relative">-->
+<!--                                <img class=" w-12 h-12 rounded-full" :src="message.sender.image" alt="Jese image">-->
+<!--                                <span class="top-0 left-7 absolute w-3.5 h-3.5 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></span>-->
+<!--                            </div>-->
+<!--                            <div class="text-white bg-gray-200 rounded-lg sm:max-w-md flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 rounded-e-xl rounded-es-xl dark:bg-gray-700">-->
+<!--                                <div class="flex items-center space-x-2 rtl:space-x-reverse">-->
+<!--                                    <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ message.sender.name }}</span>-->
+<!--                                    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">{{ message.formatted_time }}</span>-->
+<!--                                    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">{{ message.formatted_date }}</span>-->
+<!--                                </div>-->
+<!--                                <p class="text-sm font-normal py-2.5 text-gray-900 dark:text-white">{{ message.message }}</p>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--&lt;!&ndash;                    &ndash;&gt;-->
+<!--                    &lt;!&ndash; Typing indicator &ndash;&gt;-->
+<!--                    <small v-if="isFriendTyping" class=" text-sm text-gray-700 mx-8">-->
+<!--                        {{ friend.name }} is typing...-->
+<!--                    </small>-->
+
+<!--                    &lt;!&ndash; Chat input area &ndash;&gt;-->
+<!--                    <div class="flex items-center mt-4 space-x-2">-->
+<!--                        <textarea-->
+<!--                            v-model="newMessage"-->
+<!--                            @keydown="sendTypingEvent"-->
+<!--                            @keyup.enter="sendMessage"-->
+<!--                            id="message"-->
+<!--                            rows="2"-->
+<!--                            class="flex-grow block p-2 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"-->
+<!--                            placeholder="Type a message..."-->
+<!--                        ></textarea>-->
+
+<!--                        <button-->
+<!--                            @click="sendMessage"-->
+<!--                            class="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"-->
+<!--                        >-->
+<!--                            Send-->
+<!--                        </button>-->
+<!--                    </div>-->
+
+<!--                </div>-->
+<!--            </div>-->
 
 
 
-            <!-- Form for send msg-->
-        <form @submit.prevent="sendMessage">
+<!--        </div>-->
 
-            <div class="mb-5 w-1/2 mx-auto">
-                <label for="name" class="block mb-2 text-sm font-medium text-gray-900">Your name</label>
-                <input v-model="authUser.name" type="text" id="name" class="w-1/3 mx-auto text-center bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 disabled" placeholder="Name" required />
-                <span v-if="selectedUser" type="text" id="name" class="w-1/3 mx-auto text-center bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 disabled" >
-                    {{selectedUserById}}
-                </span>
-            </div>
-
-            <div class="w-1/2 mx-auto mb-4 border border-gray-200 rounded-lg bg-gray-50">
-                <div class="px-4 py-2 bg-white rounded-t-lg">
-                    <label for="comment" class="sr-only">Your comment</label>
-                    <textarea v-model="newMessage" id="comment" rows="4" class="w-full px-0 text-sm text-gray-900 bg-white border-0 focus:ring-0" placeholder="Write a comment..." required ></textarea>
-                </div>
-                <div class="flex items-center justify-between px-3 py-2 border-t">
-                    <button type="submit" class="inline-flex items-center py-2.5 px-4 text-xs font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 hover:bg-blue-800">
-                        Post comment
-                    </button>
-                    <div class="flex ps-0 space-x-1 rtl:space-x-reverse sm:ps-2">
-                        <button type="button" class="inline-flex justify-center items-center p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100">
-                            <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 20">
-                                <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M1 6v8a5 5 0 1 0 10 0V4.5a3.5 3.5 0 1 0-7 0V13a2 2 0 0 0 4 0V6"/>
-                            </svg>
-                            <span class="sr-only">Attach file</span>
-                        </button>
-                        <button type="button" class="inline-flex justify-center items-center p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100">
-                            <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 20">
-                                <path d="M8 0a7.992 7.992 0 0 0-6.583 12.535 1 1 0 0 0 .12.183l.12.146c.112.145.227.285.326.4l5.245 6.374a1 1 0 0 0 1.545-.003l5.092-6.205c.206-.222.4-.455.578-.7l.127-.155a.934.934 0 0 0 .122-.192A8.001 8.001 0 0 0 8 0Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/>
-                            </svg>
-                            <span class="sr-only">Set location</span>
-                        </button>
-                        <button type="button" class="inline-flex justify-center items-center p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100">
-                            <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 18">
-                                <path d="M18 0H2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2Zm-5.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm4.376 10.481A1 1 0 0 1 16 15H4a1 1 0 0 1-.895-1.447l3.5-7A1 1 0 0 1 7.468 6a.965.965 0 0 1 .9.5l2.775 4.757 1.546-1.887a1 1 0 0 1 1.618.1l2.541 4a1 1 0 0 1 .028 1.011Z"/>
-                            </svg>
-                            <span class="sr-only">Upload image</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </form>
-        <p class="ms-auto text-xs text-gray-500">Remember, contributions to this topic should follow our <a href="#" class="text-blue-600 hover:underline">Community Guidelines</a>.</p>
-
+<!--        </div>-->
     </div>
+
 
 </template>
 
 <style scoped>
+@import 'flowbite';
 
 </style>

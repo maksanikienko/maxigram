@@ -12,11 +12,3 @@ window.Echo = new Echo({
     disableStats: true,
     enableTransports: ['ws','wss'],
 });
-
-// window.Echo.channel('chat')
-//     .listen('.message.sent', (e) => {
-//         console.log('Received message from echo.js:', e);
-//     })
-//     .error((error) => {
-//         console.error('Echo error:', error);
-//     });

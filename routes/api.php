@@ -6,5 +6,5 @@ use Illuminate\Support\Facades\Route;
 
 //Route::middleware(['auth'])->group(function () {
 //Route::get('/get-messages', [ChatController::class, 'index']);
-    Route::post('/post-messages', [ChatController::class, 'store']);
+//    Route::post('/post-messages', [ChatController::class, 'store']);
 //});

@@ -11,13 +11,37 @@
 </head>
 <body>
 
+@include('layouts.header')
+
 <div id="app">
     <chat-component
-        :user = "{{json_encode($user)}}"
-        :sent-messages="{{ json_encode($sentMessages) }}"
-        :received-messages="{{ json_encode($receivedMessages) }}"
-        :all_users = "{{json_encode($allUsers)}}"
+{{--        :friend = "{{json_encode($friend)}}"--}}
+        :friends = "{{json_encode($friends)}}"
+        :current_user="{{ auth()->user() }}"
+:rooms="{{json_encode($roomsWithData)}}"
     ></chat-component>
 </div>
+
+{{--<script>--}}
+{{--    // JavaScript for showing/hiding the menu--}}
+{{--    const menuButton = document.getElementById('menuButton');--}}
+{{--    const menuDropdown = document.getElementById('menuDropdown');--}}
+
+{{--    menuButton.addEventListener('click', () => {--}}
+{{--        if (menuDropdown.classList.contains('hidden')) {--}}
+{{--            menuDropdown.classList.remove('hidden');--}}
+{{--        } else {--}}
+{{--            menuDropdown.classList.add('hidden');--}}
+{{--        }--}}
+{{--    });--}}
+
+{{--    // Close the menu if you click outside of it--}}
+{{--    document.addEventListener('click', (e) => {--}}
+{{--        if (!menuDropdown.contains(e.target) && !menuButton.contains(e.target)) {--}}
+{{--            menuDropdown.classList.add('hidden');--}}
+{{--        }--}}
+{{--    });--}}
+{{--</script>--}}
+
 </body>
 </html>

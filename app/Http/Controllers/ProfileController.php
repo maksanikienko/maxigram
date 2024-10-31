@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Room;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,9 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Remove all rooms associated with this User
+        Room::where('auth_user', $user->id)->orWhere('friend_user', $user->id)->delete();
 
         Auth::logout();
 
