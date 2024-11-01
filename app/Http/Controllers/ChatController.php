@@ -21,7 +21,6 @@ class ChatController extends Controller
 //
 //        return view('main', compact('friend','friends'));
 //    }
-    // Получить список всех комнат, в которых участвует аутентифицированный пользователь
     public function getRooms()
     {
         $user = auth()->user();
@@ -54,7 +53,9 @@ class ChatController extends Controller
                         'sender_id' => $message->sender_id,
                         'recipient_id' => $message->recipient_id,
                         'message' => $message->message,
-                        'created_at' => $message->created_at
+                        'picture_url' => $message->picture_url,
+                        'formatted_date' => $message->created_at->format('F j, Y'),
+                        'formatted_time' => $message->created_at->format('g:i A'),
                     ];
                 })
             ];
@@ -69,15 +70,12 @@ class ChatController extends Controller
     // Получить сообщения для конкретной комнаты
     public function getMessages(Room $room)
     {
-        // Проверка, что текущий пользователь принадлежит комнате
         if ($room->auth_user !== auth()->id() && $room->friend_user !== auth()->id()) {
             abort(403);
         }
 
-        // Загружаем сообщения комнаты, отсортированные по дате
         $messages = $room->messages()->with(['sender', 'recipient'])->orderBy('created_at', 'asc')->get();
 
-        // Форматируем сообщения
         return $messages->map(function ($message) {
             $message->formatted_date = $message->created_at->format('F j, Y');
             $message->formatted_time = $message->created_at->format('g:i A');
@@ -89,7 +87,7 @@ class ChatController extends Controller
         $sender = auth()->user();
         $friend = ($room->auth_user === $sender->id) ? User::find($room->friend_user) : User::find($room->auth_user);
 
-        $message = $messageService->createMessage($sender, $friend, request()->input('message'), $room->id);
+        $message = $messageService->createMessage($sender, $friend, request(), $room->id);
 
         broadcast(new MessageSent($message))->toOthers();
 
@@ -97,7 +95,8 @@ class ChatController extends Controller
             'message_id' => $message->id,
             'sender_id' => $message->sender_id,
             'recipient_id' => $message->recipient_id,
-            'message' => $message->message,
+            'message' => $message->message ?? null,
+            'picture_url' => $message->picture_url ?? null,
             'formatted_date' => $message->created_at->format('F j, Y'),
             'formatted_time' => $message->created_at->format('g:i A'),
         ]);

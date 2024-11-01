@@ -4,13 +4,11 @@ use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-// Common channel (for message typing)
-Broadcast::channel('chat.{id}', function ($user, $id) {
 
-//    dump($user);
-//    dump($id);
-    return (int) $user->id === (int) $id;
-});
+//Broadcast::channel('chat.{id}', function ($user, $id) {
+//
+//    return (int) $user->id === (int) $id;
+//});
 // Channel auth for each room
 Broadcast::channel('chat.room.{roomId}', function ($user, $roomId) {
 

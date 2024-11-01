@@ -32,8 +32,6 @@ use App\Models\Message;
             new PrivateChannel("chat.room.{$roomId}"),
             new PresenceChannel('presence-chat.main'),
         ];
-
-
     }
 
     public function broadcastWith(): array
@@ -43,7 +41,8 @@ use App\Models\Message;
                 'message_id' => $this->message->id,
                 'sender_id' => $this->message->sender_id,
                 'recipient_id' => $this->message->recipient_id,
-                'message' => $this->message->message,
+                'message' => $this->message->message ?? null,
+                'picture_url' => $this->message->picture_url ?? null,
                 'formatted_date' => $this->message->created_at->format('F j, Y'),
                 'formatted_time' => $this->message->created_at->format('g:i A'),
             ];
