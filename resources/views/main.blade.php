@@ -15,33 +15,10 @@
 
 <div id="app">
     <chat-component
-{{--        :friend = "{{json_encode($friend)}}"--}}
-        :friends = "{{json_encode($friends)}}"
         :current_user="{{ auth()->user() }}"
 :rooms="{{json_encode($roomsWithData)}}"
     ></chat-component>
 </div>
-
-{{--<script>--}}
-{{--    // JavaScript for showing/hiding the menu--}}
-{{--    const menuButton = document.getElementById('menuButton');--}}
-{{--    const menuDropdown = document.getElementById('menuDropdown');--}}
-
-{{--    menuButton.addEventListener('click', () => {--}}
-{{--        if (menuDropdown.classList.contains('hidden')) {--}}
-{{--            menuDropdown.classList.remove('hidden');--}}
-{{--        } else {--}}
-{{--            menuDropdown.classList.add('hidden');--}}
-{{--        }--}}
-{{--    });--}}
-
-{{--    // Close the menu if you click outside of it--}}
-{{--    document.addEventListener('click', (e) => {--}}
-{{--        if (!menuDropdown.contains(e.target) && !menuButton.contains(e.target)) {--}}
-{{--            menuDropdown.classList.add('hidden');--}}
-{{--        }--}}
-{{--    });--}}
-{{--</script>--}}
 
 </body>
 </html>

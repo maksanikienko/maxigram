@@ -11,6 +11,7 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
+    image: null,
 });
 
 const submit = () => {
@@ -24,7 +25,7 @@ const submit = () => {
     <GuestLayout>
         <Head title="Register" />
 
-        <form @submit.prevent="submit">
+        <form @submit.prevent="submit" enctype="multipart/form-data">
             <div>
                 <InputLabel for="name" value="Name" />
 
@@ -90,6 +91,19 @@ const submit = () => {
                     class="mt-2"
                     :message="form.errors.password_confirmation"
                 />
+            </div>
+            <div class="mt-4">
+                <InputLabel for="image" value="Profile Image" />
+
+                <input
+                    type="file"
+                    id="image"
+                    class="mt-1 block w-full"
+                    @change="e => form.image = e.target.files[0]"
+                    accept="image/*"
+                />
+
+                <InputError class="mt-2" :message="form.errors.image" />
             </div>
 
             <div class="mt-4 flex items-center justify-end">

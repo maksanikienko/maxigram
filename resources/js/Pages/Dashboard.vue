@@ -1,8 +1,11 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
-const props = defineProps(['users'])
-
+import {Head, router} from '@inertiajs/vue3';
+import {onMounted} from "vue";
+// const props = defineProps(['users'])
+onMounted(() => {
+    window.location.href = '/'
+});
 </script>
 
 <template>
@@ -27,17 +30,17 @@ const props = defineProps(['users'])
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-5">
-                    <div v-for="user in users" :key="user.id">
-                        <a
-                            :href="`/chat/${user.id}`"
-                            class="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
-                        >
-                            <h3 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{{ user.name }}</h3>
-                            <p class="font-normal text-gray-700 dark:text-gray-400">{{ user.email }}</p>
-                        </a>
-                    </div>
-                </div>
+<!--                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-5">-->
+<!--                    <div v-for="user in users" :key="user.id">-->
+<!--                        <a-->
+<!--                            :href="`/chat/${user.id}`"-->
+<!--                            class="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"-->
+<!--                        >-->
+<!--                            <h3 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{{ user.name }}</h3>-->
+<!--                            <p class="font-normal text-gray-700 dark:text-gray-400">{{ user.email }}</p>-->
+<!--                        </a>-->
+<!--                    </div>-->
+<!--                </div>-->
             </div>
         </div>
 

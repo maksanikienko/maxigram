@@ -6,6 +6,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import Register from "@/Pages/Auth/Register.vue";
 
 defineProps({
     canResetPassword: {
@@ -78,7 +79,7 @@ const submit = () => {
                 </label>
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
+            <div class="mt-4 flex flex-col md:flex-row gap-3 items-center justify-end">
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
@@ -94,7 +95,16 @@ const submit = () => {
                 >
                     Log in
                 </PrimaryButton>
+                <Link
+                    :href="route('register')"
+                    class="ms-4 border-2 text-gray-800 p-1.5 rounded-lg"
+                    :class="{ 'opacity-25': form.processing }"
+                    :disabled="form.processing"
+                >
+                    Register
+                </Link>
             </div>
         </form>
+
     </GuestLayout>
 </template>

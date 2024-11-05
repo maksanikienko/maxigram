@@ -68,6 +68,19 @@ const form = useForm({
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
+<!--            <div>-->
+<!--                <InputLabel for="image" value="Profile Image" />-->
+
+<!--                <input-->
+<!--                    type="file"-->
+<!--                    id="image"-->
+<!--                    class="mt-1 block w-full"-->
+<!--                    @change="e => form.setData('image', e.target.files[0])"-->
+<!--                    accept="image/*"-->
+<!--                />-->
+
+<!--                <InputError class="mt-2" :message="form.errors.image" />-->
+<!--            </div>-->
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-gray-800">
