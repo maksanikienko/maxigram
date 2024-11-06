@@ -22,6 +22,10 @@ const { isModalOpen, selectedImageUrl, openModal, closeModal } = useModalHandler
 const rooms = ref([...props.rooms]);
 const { loadOnlineStatus, saveOnlineStatus } = useStatusHandler(rooms);
 
+const showFriendsList = ref(false);
+const toggleFriendsList = () => {
+    showFriendsList.value = !showFriendsList.value;
+};
 // Selected Room
 const selectedRoom = ref({
     room_id: '',
@@ -41,7 +45,7 @@ watch(
         await nextTick(); // Wait for DOM updates
         setTimeout(() => {
                 scrollToBottom(messagesContainer.value);
-        }, 300);
+        }, 400);
     },
     { deep: true }
 );
@@ -150,17 +154,32 @@ onMounted(() => {
 
     <div class="flex justify-center h-screen bg-gray-100 ">
         <!-- Main block -->
-        <div class="flex flex-row md:w-3/4 w-full border rounded-lg shadow-lg h-full ">
-
+        <div class="flex flex-row md:w-3/4 w-full border rounded-lg shadow-lg h-full relative">
+            <!--Burger Menu-->
+            <button
+                @click="showFriendsList = !showFriendsList"
+                class="absolute top-4 left-4 p-2 text-gray-500 bg-gray-200 rounded md:hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
             <!-- Left block with friends list -->
-            <div class="w-1/4 bg-gray-200 border-r border-gray-300 p-4 hidden md:block">
-                <h2 class="text-lg font-semibold mb-4">Friends</h2>
+            <div
+                :class="{'hidden': !showFriendsList}"
+                class="absolute md:relative top-0 left-0 md:top-auto md:left-auto md:block bg-gray-200 border-r border-gray-300 p-4 w-3/4 md:w-1/4 h-full z-10 transition-all duration-300">
+                <div class="flex mb-4 justify-between items-center">
+                    <h2 class="text-lg font-semibold  ">Friends</h2>
+                    <button class=" md:hidden block p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            @click="showFriendsList = !showFriendsList"
+                    ><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+
                 <!-- friends list -->
                 <ul class="space-y-2 divide-y divide-gray-300 ">
                     <li
                         v-for="room in rooms"
                         :key="room.id"
-                        @click="selectRoom(room)"
+                        @click="[selectRoom(room), showFriendsList = !showFriendsList]"
                         :class="{ 'selected': selectedRoom && selectedRoom.room_id === room.room_id, 'bg-blue-300': selectedRoom.room_id === room.room_id }"
                         class="p-2 flex items-center space-x-3 rounded-md cursor-pointer hover:bg-gray-300 ">
                         <div class="relative">
@@ -187,12 +206,12 @@ onMounted(() => {
             </div>
 
             <!-- Vertical line -->
-            <div class="w-px bg-gray-300"></div>
+            <div class="w-px bg-gray-300 md:flex hidden"></div>
 
-            <!-- Right block with messages -->
             <div class="flex-1 p-4 bg-white flex flex-col h-full">
-                <div class="flex items-center justify-between py-3 border-b-2 border-gray-200">
-                    <div class="relative flex items-center space-x-4">
+                <!-- Messenger block Header -->
+                <div class="flex items-center justify-between py-3  border-b-2 border-gray-200">
+                    <div class="relative mx-auto md:ml-0 flex items-center space-x-4">
                         <div class="relative">
                             <span v-if="selectedRoom.other_user.is_online" class="absolute text-green-500 right-0 bottom-0">
                               <svg width="20" height="20">
@@ -200,7 +219,7 @@ onMounted(() => {
                               </svg>
                             </span>
                             <span v-else class="absolute text-green-500 right-0 bottom-0">
-                              <svg width="20" height="20">
+                              <svg width="16" height="16">
                                 <circle cx="8" cy="8" r="8" fill="#7d7c7c"></circle>
                               </svg>
                             </span>
@@ -230,7 +249,7 @@ onMounted(() => {
                          class="chat-message">
                         <div class="flex items-end">
                             <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start ">
-                                <div class="bg-gray-300 text-gray-600 px-4 py-2 rounded-lg inline-block rounded-bl-none relative">
+                                <div class="bg-gray-300 text-gray-600 md:px-4 md:py-2 p-1 rounded-lg inline-block rounded-bl-none relative">
                                     <span v-if="message.message" class="text-lg">{{message.message ?? null }}</span>
                                     <img
                                         v-if="message.picture_url"
@@ -241,15 +260,15 @@ onMounted(() => {
                                     <span class="text-gray-500 text-[10px] ml-2 align-bottom flex justify-end">{{ message.formatted_time }}</span>
                                 </div>
                             </div>
-                            <img v-if="selectedRoom.other_user.image" :src="selectedRoom.other_user.image" alt="My profile" class="w-6 h-6 rounded-full order-1">
-                            <img v-else src="https://robohash.org/yyy" alt="avatar" class="w-10 h-10 rounded-full">
+                            <img v-if="selectedRoom.other_user.image" :src="selectedRoom.other_user.image" alt="My profile" class="w-6 h-6 rounded-full order-1 md:block hidden">
+                            <img v-else src="https://robohash.org/yyy" alt="avatar" class="w-10 h-10 rounded-full md:block hidden">
                         </div>
                     </div>
                         <!--Right messages-->
                     <div v-else >
                         <div class="flex items-end justify-end">
                             <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end ">
-                                <div class="bg-blue-500 text-white px-4 py-2 rounded-lg inline-block rounded-br-none relative ">
+                                <div class="bg-blue-500 text-white md:px-4 md:py-2 p-1 rounded-lg inline-block rounded-br-none relative ">
                                     <span v-if="message.message" class="text-lg">{{message.message ?? null }}</span>
                                     <img
                                         v-if="message.picture_url"
@@ -260,8 +279,8 @@ onMounted(() => {
                                     <span class="text-gray-200 text-[10px] ml-2 align-bottom flex justify-end ">{{ message.formatted_time }}</span>
                                 </div>
                             </div>
-                            <img v-if="props.current_user.image" :src="props.current_user.image" alt="My profile" class="w-6 h-6 rounded-full order-2">
-                            <img v-else src="https://robohash.org/yyy" alt="avatar" class="w-10 h-10 rounded-full">
+                            <img v-if="props.current_user.image" :src="props.current_user.image" alt="My profile" class="w-6 h-6 rounded-full order-2 md:block hidden">
+                            <img v-else src="https://robohash.org/yyy" alt="avatar" class="w-10 h-10 rounded-full md:block hidden">
                         </div>
                         <!-- Main modal -->
                         <div
@@ -274,7 +293,7 @@ onMounted(() => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
-                                <img :src="selectedImageUrl" alt="Full Image" class="max-w-2xl h-auto rounded-lg"/>
+                                <img :src="selectedImageUrl" alt="Full Image" class="max-w-xs md:max-w-2xl h-auto rounded-lg"/>
                             </div>
                         </div>
 
@@ -289,7 +308,7 @@ onMounted(() => {
 
                 <!--Emoji container -->
                 <div v-if="showEmojiPicker"
-                     class="absolute bottom-0 md:right-0 right-48 mt-2 bg-white border rounded-lg shadow-lg p-2">
+                     class="absolute bottom-0 md:right-0  my-20 bg-white border rounded-lg shadow-lg p-2">
                     <emoji-picker  @emoji-click="addEmoji"></emoji-picker>
                 </div>
 
@@ -355,9 +374,6 @@ onMounted(() => {
             </div>
         </div>
     </div>
-
-
-
 
 </template>
 

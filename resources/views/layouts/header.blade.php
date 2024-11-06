@@ -1,8 +1,8 @@
 
-<header class="bg-white">
+<header class="bg-white md:block hidden">
     <nav class="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
 
-        <div class="hidden lg:flex lg:flex-1 lg:justify-end md:mx-28">
+        <div class="hidden md:flex md:flex-1 md:justify-end md:mx-28">
             @if(auth()->user())
 
                 <div class="relative">
@@ -32,9 +32,9 @@
         </div>
     </nav>
     <!-- Mobile menu, show/hide based on menu open state. -->
-    <div class="lg:hidden" role="dialog" aria-modal="true">
-        <!-- Background backdrop, show/hide based on slide-over state. -->
-        <div class="fixed inset-0 z-10"></div>
+{{--    <div class="lg:hidden" role="dialog" aria-modal="true">--}}
+{{--        <!-- Background backdrop, show/hide based on slide-over state. -->--}}
+{{--        <div class="fixed inset-0 z-10"></div>--}}
 
-    </div>
+{{--    </div>--}}
 </header>
