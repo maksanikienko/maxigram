@@ -7,11 +7,13 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Messenger</title>
+<link rel="stylesheet" href="{{ asset('build/assets/app.css') }}">
+<script src="{{ asset('build/assets/main.js') }}" defer></script>
     @vite(['resources/js/main.js','resources/css/app.css'])
 </head>
 <body>
 
-@include('layouts.header')
+{{-- @include('layouts.header') --}}
 
 <div id="app">
     <chat-component

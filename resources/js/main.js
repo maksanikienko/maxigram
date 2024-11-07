@@ -6,7 +6,7 @@ import.meta.glob([
 ]);
 import {Dropdown} from "flowbite";
 import { createApp } from 'vue';
-import ChatComponent from './components/ChatComponent.vue';
+import ChatComponent from './Components/ChatComponent.vue';
 
 const app = createApp({});
 app.component('ChatComponent', ChatComponent);
