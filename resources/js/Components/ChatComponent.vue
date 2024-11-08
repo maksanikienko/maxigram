@@ -8,6 +8,8 @@ import { useEmojiPicker } from './../utils/emojiPicker.js'
 import { useFileHandler } from './../utils/fileHandler.js';
 import { useModalHandler } from './../utils/modalHandler.js';
 import { useStatusHandler } from './../utils/statusHandler.js';
+import ApplicationLogo from "@/Components/ApplicationLogo.vue";
+// import ApplicationLogo from "/ApplicationLogo.vue";
 
 const { showEmojiPicker, selectedEmoji, emojiPickerContainer, toggleEmojiPicker, addEmoji } = useEmojiPicker();
 const { selectedFile, selectedFileUrl, attachedFile, clearAttachedFile } = useFileHandler();
@@ -23,9 +25,9 @@ const rooms = ref([...props.rooms]);
 const { loadOnlineStatus, saveOnlineStatus } = useStatusHandler(rooms);
 
 const showFriendsList = ref(false);
-const toggleFriendsList = () => {
-    showFriendsList.value = !showFriendsList.value;
-};
+// const toggleFriendsList = () => {
+//     showFriendsList.value = !showFriendsList.value;
+// };
 // Selected Room
 const selectedRoom = ref({
     room_id: '',
@@ -237,8 +239,11 @@ onMounted(() => {
 
                     <div class="relative">
                         <button id="userDropdown" data-dropdown-toggle="dropdownMenu" class="text-gray-700 font-semibold flex gap-3 ">
-                            <img class="md:max-w-20 max-w-12 h-auto rounded-full" :src="props.current_user.image" alt="">
-<!--                            <span class="my-auto">{{current_user.name }}</span>-->
+                            <img v-if="props.current_user.image" class="md:max-w-16 max-w-8 h-auto rounded-full" :src="props.current_user.image" alt="">
+                            <ApplicationLogo
+                                v-else
+                                class="block md:max-w-16 max-w-8 w-auto fill-current text-gray-800"
+                            />
                         </button>
                         <div id="dropdownMenu" class="z-10 hidden divide-y divide-gray-100 rounded-lg shadow bg-gray-50">
                             <ul class="py-1 text-gray-700" aria-labelledby="userDropdown">
