@@ -9,6 +9,8 @@
     <title>Messenger</title>
 <link rel="stylesheet" href="{{ asset('build/assets/app.css') }}">
 <script src="{{ asset('build/assets/main.js') }}" defer></script>
+
+
     @vite(['resources/js/main.js','resources/css/app.css'])
 </head>
 <body>
@@ -19,8 +21,18 @@
     <chat-component
         :current_user="{{ auth()->user() }}"
 :rooms="{{json_encode($roomsWithData)}}"
+        profile-url="{{ $profileUrl }}"
     ></chat-component>
 </div>
 
 </body>
 </html>
+
+
+<script>
+    window.Laravel = {
+        csrfToken: '{{ csrf_token() }}',
+        logoutUrl: '{{ route('logout') }}',
+        profileUrl: '{{ route('profile.edit') }}'
+    };
+</script>

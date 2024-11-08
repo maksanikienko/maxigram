@@ -19,6 +19,7 @@ const user = usePage().props.auth.user;
 const form = useForm({
     name: user.name,
     email: user.email,
+    image: null,
 });
 </script>
 
@@ -35,7 +36,7 @@ const form = useForm({
         </header>
 
         <form
-            @submit.prevent="form.patch(route('profile.update'))"
+            @submit.prevent="form.post(route('profile.update'))"
             class="mt-6 space-y-6"
         >
             <div>
@@ -46,7 +47,6 @@ const form = useForm({
                     type="text"
                     class="mt-1 block w-full"
                     v-model="form.name"
-                    required
                     autofocus
                     autocomplete="name"
                 />
@@ -62,25 +62,24 @@ const form = useForm({
                     type="email"
                     class="mt-1 block w-full"
                     v-model="form.email"
-                    required
                     autocomplete="username"
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
-<!--            <div>-->
-<!--                <InputLabel for="image" value="Profile Image" />-->
+            <div class="mt-4">
+                <InputLabel for="image" value="Profile Image" />
 
-<!--                <input-->
-<!--                    type="file"-->
-<!--                    id="image"-->
-<!--                    class="mt-1 block w-full"-->
-<!--                    @change="e => form.setData('image', e.target.files[0])"-->
-<!--                    accept="image/*"-->
-<!--                />-->
+                <input
+                    type="file"
+                    id="image"
+                    class="mt-1 block w-full"
+                    @change="e => form.image = e.target.files[0]"
+                    accept="image/*"
+                />
 
-<!--                <InputError class="mt-2" :message="form.errors.image" />-->
-<!--            </div>-->
+                <InputError class="mt-2" :message="form.errors.image" />
+            </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-gray-800">

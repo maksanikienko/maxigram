@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Controllers\RoomController;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -23,7 +25,7 @@ class CreateUser extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Create a new user';
 
     /**
      * Execute the console command.
@@ -33,24 +35,17 @@ class CreateUser extends Command
         $name = $this->argument('name');
         $email = $this->argument('email');
         $password = $this->argument('password');
-        $imagePath = $this->option('image');
 
-        $request = Request::create('/register', 'POST', [
+        $user = User::create([
             'name' => $name,
             'email' => $email,
-            'password' => $password,
-            'password_confirmation' => $password,
+            'password' => Hash::make($password),
         ]);
 
-        if ($imagePath && file_exists($imagePath)) {
-            $request->files->set('image', new \Illuminate\Http\UploadedFile(
-                $imagePath,
-                pathinfo($imagePath, PATHINFO_BASENAME)
-            ));
-        }
+        (new RoomController)->createRoom($user);
 
-        $controller = new RegisteredUserController();
+        event(new Registered($user));
 
-            return $controller->store($request);
+            return $user->name . 'Created';
     }
 }

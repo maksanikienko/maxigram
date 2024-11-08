@@ -12,7 +12,7 @@ import { useStatusHandler } from './../utils/statusHandler.js';
 const { showEmojiPicker, selectedEmoji, emojiPickerContainer, toggleEmojiPicker, addEmoji } = useEmojiPicker();
 const { selectedFile, selectedFileUrl, attachedFile, clearAttachedFile } = useFileHandler();
 
-const props = defineProps([ 'current_user','rooms']);
+const props = defineProps([ 'current_user','rooms','profileUrl']);
 const newMessage = ref("");
 const isFriendTyping = ref(false);
 const isFriendTypingTimer = ref(null);
@@ -234,6 +234,27 @@ onMounted(() => {
                             <span v-if="!selectedRoom.other_user.is_online" class="text-lg text-gray-600">Offline</span>
                         </div>
                     </div>
+
+                    <div class="relative">
+                        <button id="userDropdown" data-dropdown-toggle="dropdownMenu" class="text-gray-700 font-semibold flex gap-3 ">
+                            <img class="md:max-w-20 max-w-12 h-auto rounded-full" :src="props.current_user.image" alt="">
+<!--                            <span class="my-auto">{{current_user.name }}</span>-->
+                        </button>
+                        <div id="dropdownMenu" class="z-10 hidden divide-y divide-gray-100 rounded-lg shadow bg-gray-50">
+                            <ul class="py-1 text-gray-700" aria-labelledby="userDropdown">
+                                <li>
+                                    <a v-if="profileUrl" :href="profileUrl" class="block px-4 py-2 text-sm">Profile</a>
+                                </li>
+<!--                                <li>-->
+<!--                                    <form method="POST" :action="window.Laravel.logoutUrl">-->
+<!--                                        <input type="hidden" name="_token" :value="window.Laravel.csrfToken">-->
+<!--                                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm">Logout</button>-->
+<!--                                    </form>-->
+<!--                                </li>-->
+                            </ul>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Messages block-->
