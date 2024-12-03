@@ -1,34 +1,32 @@
 <script setup>
 import {nextTick, onMounted, ref,watch} from 'vue';
 import axios from 'axios';
-import {scrollToBottom} from "./../utils/scrollToBottom.js";
-
 import 'emoji-picker-element';
+import FriendsList from './parts/FriendsList.vue';
+import { scrollToBottom } from "./../utils/scrollToBottom.js";
 import { useEmojiPicker } from './../utils/emojiPicker.js'
 import { useFileHandler } from './../utils/fileHandler.js';
 import { useModalHandler } from './../utils/modalHandler.js';
 import { useStatusHandler } from './../utils/statusHandler.js';
+import { connectToPresenceChannel, connectToPrivateChannel, sendTypingEvent } from './../utils/conectChannel.js';
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 // import ApplicationLogo from "/ApplicationLogo.vue";
 
 const { showEmojiPicker, selectedEmoji, emojiPickerContainer, toggleEmojiPicker, addEmoji } = useEmojiPicker();
 const { selectedFile, selectedFileUrl, attachedFile, clearAttachedFile } = useFileHandler();
+const { isModalOpen, selectedImageUrl, openModal, closeModal } = useModalHandler();
 
 const props = defineProps([ 'current_user','rooms','profileUrl']);
 const newMessage = ref("");
 const isFriendTyping = ref(false);
 const isFriendTypingTimer = ref(null);
 
-const { isModalOpen, selectedImageUrl, openModal, closeModal } = useModalHandler();
 
 const rooms = ref([...props.rooms]);
 const { loadOnlineStatus, saveOnlineStatus } = useStatusHandler(rooms);
 
 const showFriendsList = ref(false);
-// const toggleFriendsList = () => {
-//     showFriendsList.value = !showFriendsList.value;
-// };
-// Selected Room
+
 const selectedRoom = ref({
     room_id: '',
     other_user: {  },
@@ -36,7 +34,7 @@ const selectedRoom = ref({
 });
 const selectRoom = (room) => {
     selectedRoom.value = room;
-    connectToChannel(room.room_id);
+    connectToPrivateChannel(room.room_id,props, selectedRoom, isFriendTyping, isFriendTypingTimer);
 };
 
 // Scroll down chat window
@@ -56,11 +54,6 @@ watch(selectedEmoji, (emoji) => {
         newMessage.value += emoji;
     }
 });
-
-// Get last messages foreach friend
-const getLastMessage = (messages) => {
-    return messages.length > 0 ? messages[messages.length - 1].message : 'No Messages';
-};
 
 const sendMessage = () => {
     if (newMessage.value.trim() !== "" || selectedFile.value ) {
@@ -83,70 +76,15 @@ const sendMessage = () => {
             });
     }
 };
-
-const connectToChannel = (roomId) => {
-    // console.log('connectToChannel',roomId)
-    Echo.private(`chat.room.${roomId}`)
-        .listen("MessageSent", (event) => {
-            // console.log(`channel.room.${roomId}`,event)
-            if (props.current_user.id !== event.sender_id) {
-                selectedRoom.value.messages.push(event);
-            }
-            // console.log('Updated selectedRoom',selectedRoom.value)
-        })
-        .listenForWhisper("typing", (event) => {
-            // console.log(event,selectedRoom.value.other_user.id )
-            isFriendTyping.value = event.userID === selectedRoom.value.other_user.id;
-
-            if (isFriendTypingTimer.value) {
-                clearTimeout(isFriendTypingTimer.value);
-            }
-            isFriendTypingTimer.value = setTimeout(() => {
-                isFriendTyping.value = false;
-            }, 1000);
-        });
-}
-const connectToPresenceChannel = () => {
-    Echo.join('presence-chat.main')
-        .here((users) => {
-            // Check all online users
-            users.forEach((user) => {
-                rooms.value.forEach(room => {
-                    if (room.other_user.id === user.id) {
-                        room.other_user.is_online = true;
-                    }
-                });
-            });
-            saveOnlineStatus();
-        })
-        .joining((user) => {
-            rooms.value.forEach(room => {
-                if (room.other_user.id === user.id) {
-                    room.other_user.is_online = true;
-                    saveOnlineStatus();
-                }
-            });
-        })
-        .leaving((user) => {
-            rooms.value.forEach(room => {
-                if (room.other_user.id === user.id) {
-                    room.other_user.is_online = false;
-                    saveOnlineStatus();
-                }
-            });
-        });
-}
-
     // Send event typing
-const sendTypingEvent = () => {
-    Echo.private(`chat.room.${selectedRoom.value.room_id}`).whisper("typing", {
-        userID: props.current_user.id,
-    });
+const sendTyping = () => {
+    sendTypingEvent(selectedRoom.value.room_id, props.current_user.id);
 };
-
 onMounted(() => {
     selectRoom(rooms.value[0]) // Open 1 chat with friend
-    connectToPresenceChannel()
+    connectToPresenceChannel(rooms, saveOnlineStatus);
+    connectToPrivateChannel(selectedRoom.value.id, props, selectedRoom, isFriendTyping, isFriendTypingTimer);
+
     loadOnlineStatus()
 });
 
@@ -154,66 +92,26 @@ onMounted(() => {
 
 <template>
 
-    <div class="flex justify-center h-screen bg-gray-100 ">
+    <div class="container mx-auto flex justify-center h-screen bg-gray-100 ">
         <!-- Main block -->
         <div class="flex flex-row md:w-3/4 w-full border rounded-lg shadow-lg h-full relative">
-            <!--Burger Menu-->
-            <button
-                @click="showFriendsList = !showFriendsList"
-                class="absolute top-4 left-4 p-2 text-gray-500 bg-gray-200 rounded md:hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
+
             <!-- Left block with friends list -->
-            <div
-                :class="{'hidden': !showFriendsList}"
-                class="absolute md:relative top-0 left-0 md:top-auto md:left-auto md:block bg-gray-200 border-r border-gray-300 p-4 w-3/4 md:w-1/4 h-full z-10 transition-all duration-300">
-                <div class="flex mb-4 justify-between items-center">
-                    <h2 class="text-lg font-semibold  ">Friends</h2>
-                    <button class=" md:hidden block p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                            @click="showFriendsList = !showFriendsList"
-                    ><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                </div>
-
-                <!-- friends list -->
-                <ul class="space-y-2 divide-y divide-gray-300 ">
-                    <li
-                        v-for="room in rooms"
-                        :key="room.id"
-                        @click="[selectRoom(room), showFriendsList = !showFriendsList]"
-                        :class="{ 'selected': selectedRoom && selectedRoom.room_id === room.room_id, 'bg-blue-300': selectedRoom.room_id === room.room_id }"
-                        class="p-2 flex items-center space-x-3 rounded-md cursor-pointer hover:bg-gray-300 ">
-                        <div class="relative">
-                            <img v-if="room.other_user.image" :src="room.other_user.image" alt="avatar" class="w-10 h-10 rounded-full">
-                            <img v-else src="https://robohash.org/vvvv" alt="avatar" class="w-10 h-10 rounded-full">
-                            <span v-if="room.other_user.is_online" class="absolute text-green-500 right-0 bottom-0">
-                                <svg width="12" height="12">
-                                <circle cx="6" cy="6" r="6" fill="currentColor"></circle>
-                              </svg>
-                            </span>
-                            <span v-else class="absolute text-green-500 right-0 bottom-0">
-                                <svg width="12" height="12">
-                                <circle cx="6" cy="6" r="6" fill="#7d7c7c"></circle>
-                              </svg>
-                            </span>
-                        </div>
-                        <div >
-                            <div class="font-semibold">{{room.other_user.name}}</div>
-                            <div v-if="selectedRoom.room_id !== room.room_id" class="text-xs text-gray-500">{{ getLastMessage(room.messages) }}</div>
-                        </div>
-                    </li>
-
-                </ul>
-            </div>
+                <FriendsList
+                    :rooms="rooms"
+                    :selectedRoom="selectedRoom"
+                    :showFriendsList="showFriendsList"
+                    @toggleFriendsList="showFriendsList = !showFriendsList"
+                    @selectRoom="selectRoom"
+                />
 
             <!-- Vertical line -->
             <div class="w-px bg-gray-300 md:flex hidden"></div>
 
             <div class="flex-1 p-4 bg-white flex flex-col h-full">
                 <!-- Messenger block Header -->
-                <div class="flex items-center justify-between py-3  border-b-2 border-gray-200">
-                    <div class="relative mx-auto md:ml-0 flex items-center space-x-4">
+                <div class="flex items-center justify-between py-3 border-b-2 border-gray-200">
+                    <div class="relative md:mx-auto md:ml-0 flex items-center space-x-4">
                         <div class="relative">
                             <span v-if="selectedRoom.other_user.is_online" class="absolute text-green-500 right-0 bottom-0">
                               <svg width="20" height="20">
@@ -239,7 +137,7 @@ onMounted(() => {
 
                     <div class="relative">
                         <button id="userDropdown" data-dropdown-toggle="dropdownMenu" class="text-gray-700 font-semibold flex gap-3 ">
-                            <img v-if="props.current_user.image" class="md:max-w-16 max-w-8 h-auto rounded-full" :src="props.current_user.image" alt="">
+                            <img v-if="props.current_user.image" class="md:max-w-16 max-w-8 md:max-h-16 max-h-8 rounded-full" :src="props.current_user.image" alt="">
                             <ApplicationLogo
                                 v-else
                                 class="block md:max-w-16 max-w-8 w-auto fill-current text-gray-800"
@@ -250,12 +148,6 @@ onMounted(() => {
                                 <li>
                                     <a v-if="profileUrl" :href="profileUrl" class="block px-4 py-2 text-sm">Profile</a>
                                 </li>
-<!--                                <li>-->
-<!--                                    <form method="POST" :action="window.Laravel.logoutUrl">-->
-<!--                                        <input type="hidden" name="_token" :value="window.Laravel.csrfToken">-->
-<!--                                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm">Logout</button>-->
-<!--                                    </form>-->
-<!--                                </li>-->
                             </ul>
                         </div>
                     </div>
@@ -311,15 +203,25 @@ onMounted(() => {
                         <!-- Main modal -->
                         <div
                             v-if="isModalOpen"
-                            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-5 "
+                            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-5 transition-opacity duration-300"
+                            :class="{ 'opacity-100': isModalOpen, 'opacity-0 pointer-events-none': !isModalOpen }"
+
                         >
-                            <div class="p-4 md:p-5 space-y-4">
-                                <button @click="closeModal" class=" text-white bg-gray-600 hover:bg-gray-800 rounded-full p-2 focus:outline-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+                            <div class="relative p-4 md:p-5 space-y-4  bg-white rounded-lg overflow-hidden shadow-lg transition-transform transform duration-300 scale-100"
+                                 :class="{ 'scale-100': isModalOpen, 'scale-90': !isModalOpen }"
+                            >
+<!--                                <button @click="closeModal" class=" text-white bg-gray-600 hover:bg-gray-800 rounded-full p-2 focus:outline-none">-->
+<!--                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">-->
+<!--                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />-->
+<!--                                    </svg>-->
+<!--                                </button>-->
                                 <img :src="selectedImageUrl" alt="Full Image" class="max-w-xs md:max-w-2xl h-auto rounded-lg"/>
+                                <button
+                                    class="absolute top-2 right-2 bg-gray-800 text-white rounded-full p-1"
+                                    @click="closeModal"
+                                >
+                                    ✖
+                                </button>
                             </div>
                         </div>
 
@@ -356,29 +258,23 @@ onMounted(() => {
                         <img class="max-w-24 max-h-24" :src="selectedFileUrl" alt="Selected Image" />
                     </div>
 
-                    <div class="relative flex">
-                      <span class="absolute inset-y-0 flex items-center">
+                    <div class="relative flex ">
 
-                          <!--  Emoji button-->
+                        <!--  Emoji button-->
+                      <span class="flex items-center">
                         <button @click="toggleEmojiPicker" type="button" class="p-2 text-gray-500 rounded-full cursor-pointer hover:text-gray-900 hover:bg-gray-300 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6 text-gray-600">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </button>
-
-<!--                        <button type="button" class="inline-flex items-center justify-center rounded-full h-12 w-12 text-gray-500 hover:bg-gray-300 focus:outline-none">-->
-<!--                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6 text-gray-600">-->
-<!--                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>-->
-<!--                          </svg>-->
-<!--                        </button>-->
-
                       </span>
+
                         <input
                             v-model="newMessage"
-                            @input="sendTypingEvent"
+                            @input="sendTyping"
                             type="text"
                             placeholder="Write your message!"
-                            class="w-full pl-12 bg-gray-200 rounded-md py-3"
+                            class="w-full bg-gray-200 rounded-md"
                         >
                         <!--  Attach button-->
                         <button @click="$refs.fileInput.click()" type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
@@ -389,7 +285,7 @@ onMounted(() => {
                         </button>
 
                         <!--  Send button-->
-                        <button type="submit" class="inline-flex items-center justify-center rounded-lg px-4 py-3 text-white bg-blue-500 hover:bg-blue-400 focus:outline-none ml-2">
+                        <button type="submit" class="inline-flex items-center justify-center rounded-lg md:px-4 md:py-3 p-2 text-white bg-blue-500 hover:bg-blue-400 focus:outline-none ml-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-6 w-6 ml-2 transform rotate-45">
                                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
                             </svg>
@@ -404,6 +300,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@import "flowbite";
 emoji-picker {
     --num-columns: 5;
     --emoji-size: 1.5rem;

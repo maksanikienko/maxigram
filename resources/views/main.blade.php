@@ -7,14 +7,13 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Messenger</title>
-<link rel="stylesheet" href="{{ asset('build/assets/app.css') }}">
-<script src="{{ asset('build/assets/main.js') }}" defer></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 
     @vite(['resources/js/main.js','resources/css/app.css'])
 </head>
 <body>
-
+{{--<button id="myButton">Click Me</button>--}}
 {{-- @include('layouts.header') --}}
 
 <div id="app">
@@ -35,4 +34,19 @@
         logoutUrl: '{{ route('logout') }}',
         profileUrl: '{{ route('profile.edit') }}'
     };
+    // /* global $ */
+    // $(document).ready(function() {
+    //     $('#myButton').on('click', function() {
+    //
+    //         $.ajax({
+    //             url: 'https://randomuser.me/api/',
+    //             dataType: 'json',
+    //             success: function(data) {
+    //                 console.log(data);
+    //             }
+    //         });
+    //
+    //     });
+    // });
+
 </script>

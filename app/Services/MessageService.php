@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendMessageJob;
 use App\Models\Message;
 use App\Models\User;
 
@@ -29,6 +30,8 @@ class MessageService
         $message->formatted_time = $message->created_at->format('g:i A');
         $message->sender = $sender;
         $message->recipient = $recipient;
+
+        SendMessageJob::dispatch($message, $sender, $recipient);
 
         return $message;
     }

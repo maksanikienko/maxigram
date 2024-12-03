@@ -76,7 +76,7 @@ class ChatController extends Controller
 
         $message = $messageService->createMessage($sender, $friend, request(), $room->id);
 
-        broadcast(new MessageSent($message))->toOthers();
+//        broadcast(new MessageSent($message))->toOthers();
 
         return response()->json([
             'message_id' => $message->id,
