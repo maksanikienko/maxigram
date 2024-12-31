@@ -21,6 +21,7 @@
         :current_user="{{ auth()->user() }}"
 :rooms="{{json_encode($roomsWithData)}}"
         profile-url="{{ $profileUrl }}"
+        @typing="handleTyping"
     ></chat-component>
 </div>
 

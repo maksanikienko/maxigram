@@ -1,10 +1,15 @@
 <?php
 
-use App\Http\Controllers\ChatController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\GroupController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-//Route::middleware(['auth'])->group(function () {
-//Route::get('/get-messages', [ChatController::class, 'index']);
-//    Route::post('/post-messages', [ChatController::class, 'store']);
-//});
+Route::middleware('web')
+    ->prefix('groups')
+    ->group(function () {
+        Route::get('/get', [GroupController::class, 'getGroups']);
+        Route::post('/create', [GroupController::class, 'createGroup']);
+        Route::post('/add/{groupId}/members', [GroupController::class, 'addMember']);
+        Route::get('/get/{groupId}/messages', [GroupController::class, 'getGroupMessages']);
+        Route::post('/send/{groupId}/messages', [GroupController::class, 'sendMessage']);
+    });

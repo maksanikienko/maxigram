@@ -1,14 +1,10 @@
 <?php
 
+use App\Models\ChatGroup;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-
-//Broadcast::channel('chat.{id}', function ($user, $id) {
-//
-//    return (int) $user->id === (int) $id;
-//});
 // Channel auth for each room
 Broadcast::channel('chat.room.{roomId}', function ($user, $roomId) {
 
@@ -26,4 +22,14 @@ Broadcast::channel('presence-chat.main', function (User $user) {
         'name' => $user->name,
         'is_online' => true,
     ];
+});
+Broadcast::channel('group.chat.{groupId}', function (User $user, $groupId) {
+    $group = ChatGroup::find($groupId);
+
+    if (!$group) {
+        return false; // Group doesn't exist
+    }
+
+    // Check User is member of group
+    return $group->members->contains('user_id', $user->id);
 });

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -78,6 +79,11 @@ class User extends Authenticatable
     public function roomsAsFriendUser(): HasMany
     {
         return $this->hasMany(Room::class, 'friend_user');
+    }
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(ChatGroup::class, 'chat_group_members', 'user_id', 'group_id')
+            ->withPivot('created_at');
     }
 
 }
