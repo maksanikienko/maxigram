@@ -12,5 +12,5 @@ window.Echo = new Echo({
     disableStats: true,
     enableTransports: ['ws'],
 });
-// console.log(import.meta.env.VITE_REVERB_HOST)
-//console.log(import.meta.env.VITE_REVERB_PORT)
+console.log(import.meta.env.VITE_REVERB_HOST)
+console.log(import.meta.env.VITE_REVERB_PORT)

@@ -1,106 +1,147 @@
-<script setup >
-import {useFileHandler} from "@/utils/fileHandler.js";
-import {useEmojiPicker} from "@/utils/emojiPicker.js";
-import {ref, watch} from "vue";
-import axios from "axios";
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+import axios from 'axios';
+import { useFileHandler } from '@/utils/fileHandler.js';
+import { Smile, Paperclip, Send, X } from 'lucide-vue-next';
+import 'emoji-picker-element';
 
 const props = defineProps(['room']);
-const emits = defineEmits(['typing']);
+const emit = defineEmits(['typing']);
 
 const { selectedFile, selectedFileUrl, attachedFile, clearAttachedFile } = useFileHandler();
-const { showEmojiPicker, selectedEmoji, emojiPickerContainer, toggleEmojiPicker, addEmoji } = useEmojiPicker();
 
-const newMessage = ref("");
-const sendMessage = () => {
-    if (newMessage.value.trim() !== "" || selectedFile.value ) {
-        const formData = new FormData();
-        formData.append('message', newMessage.value);
-        if (selectedFile.value) {
-            formData.append('image', selectedFile.value);
-        }
-        axios.post(`/chat/room/${props.room.room_id}/send`, formData,
-            {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            })
-            .then((response) => {
-                // console.log('sent_msg',response.data)
-                props.room.messages.push(response.data);
-                // console.log('Updated selectedRoom:', selectedRoom.value);
-                newMessage.value = "";
-                selectedFile.value = "";
-                selectedFileUrl.value = "";
-            });
+const newMessage = ref('');
+const sending = ref(false);
+const fileInput = ref(null);
+
+const showEmojiPicker = ref(false);
+const emojiButtonRef = ref(null);
+const pickerStyle = ref({});
+
+const toggleEmojiPicker = () => {
+    if (!showEmojiPicker.value && emojiButtonRef.value) {
+        const rect = emojiButtonRef.value.getBoundingClientRect();
+        const pickerWidth = 340;
+        const leftPos = Math.max(4, Math.min(rect.left, window.innerWidth - pickerWidth - 8));
+        pickerStyle.value = {
+            bottom: `${window.innerHeight - rect.top + 8}px`,
+            left: `${leftPos}px`,
+        };
+    }
+    showEmojiPicker.value = !showEmojiPicker.value;
+};
+
+const addEmoji = (event) => {
+    newMessage.value += event.detail.emoji.unicode;
+    showEmojiPicker.value = false;
+};
+
+const closeEmojiPicker = () => { showEmojiPicker.value = false; };
+onMounted(() => document.addEventListener('click', closeEmojiPicker));
+onUnmounted(() => document.removeEventListener('click', closeEmojiPicker));
+
+const sendMessage = async () => {
+    if ((!newMessage.value.trim() && !selectedFile.value) || sending.value) return;
+    sending.value = true;
+    const formData = new FormData();
+    formData.append('message', newMessage.value);
+    if (selectedFile.value) formData.append('image', selectedFile.value);
+
+    try {
+        const { data } = await axios.post(`/chat/room/${props.room.room_id}/send`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        props.room.messages.push(data);
+        newMessage.value = '';
+        clearAttachedFile();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        sending.value = false;
     }
 };
-const sendTyping = () => {
-    emits('typing');
-};
-watch(selectedEmoji, (emoji) => {
-    if (emoji) {
-        newMessage.value += emoji;
-    }
-});
 
+const onKeydown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+};
 </script>
 
 <template>
+    <div class="shrink-0 px-4 pb-4 pt-2 bg-white border-t border-border">
 
-    <!--Emoji container -->
-    <div v-if="showEmojiPicker"
-         class="absolute bottom-0 md:right-0  my-20 bg-white border rounded-lg shadow-lg p-2">
-        <emoji-picker  @emoji-click="addEmoji"></emoji-picker>
-    </div>
+        <!-- Image preview -->
+        <Transition name="slide">
+            <div v-if="selectedFileUrl" class="mb-2 flex items-start gap-2 p-2 bg-muted rounded-xl">
+                <div class="relative">
+                    <img :src="selectedFileUrl" alt="preview" class="h-16 w-16 rounded-lg object-cover" />
+                    <button
+                        @click="clearAttachedFile"
+                        class="absolute -top-1.5 -right-1.5 h-4 w-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                    >
+                        <X class="w-2.5 h-2.5" />
+                    </button>
+                </div>
+                <span class="text-xs text-muted-foreground pt-1">Image attached</span>
+            </div>
+        </Transition>
 
-    <form v-if="room.room_id" @submit.prevent="sendMessage" class="border-t-2 border-gray-200 px-4 pt-4">
+        <!-- Emoji picker (teleported to body to avoid overflow clipping) -->
+        <Teleport to="body">
+            <div
+                v-if="showEmojiPicker"
+                :style="{ position: 'fixed', zIndex: 9999, ...pickerStyle }"
+                @click.stop
+            >
+                <emoji-picker @emoji-click="addEmoji" />
+            </div>
+        </Teleport>
 
-        <!--Attached file-->
-        <div v-if="selectedFileUrl" class=" relative  flex justify-end py-2 px-6">
-            <!-- Remove attached file -->
+        <!-- Input row -->
+        <div v-if="room.room_id" class="flex items-end gap-2">
             <button
-                @click="clearAttachedFile"
-                class="absolute top-1 right-1 bg-gray-200 rounded-full p-1 text-gray-600 hover:bg-gray-300"
-                aria-label="Remove image"
+                ref="emojiButtonRef"
+                @click.stop="toggleEmojiPicker"
+                type="button"
+                class="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <Smile class="w-5 h-5" />
             </button>
-            <img class="max-w-24 max-h-24" :src="selectedFileUrl" alt="Selected Image" />
-        </div>
 
-        <div class="relative flex ">
-
-            <!--  Emoji button-->
-        <span class="flex items-center">
-            <button @click="toggleEmojiPicker" type="button" class="p-2 text-gray-500 rounded-full cursor-pointer hover:text-gray-900 hover:bg-gray-300 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6 text-gray-600">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-            </button>
-        </span>
-
-            <input
+            <textarea
                 v-model="newMessage"
-                @input="sendTyping"
-                type="text"
-                placeholder="Write your message!"
-                class="w-full bg-gray-200 rounded-md"
-            >
-            <!--  Attach button-->
-            <button @click="$refs.fileInput.click()" type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
-                <input type="file" @input="attachedFile" accept="image/*" class="hidden" ref="fileInput" />
-                <svg class="w-6 h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 20">
-                    <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M1 6v8a5 5 0 1 0 10 0V4.5a3.5 3.5 0 1 0-7 0V13a2 2 0 0 0 4 0V6"/>
-                </svg>
-            </button>
+                @input="emit('typing')"
+                @keydown="onKeydown"
+                placeholder="Write a message..."
+                rows="1"
+                class="flex-1 resize-none rounded-2xl border border-input bg-muted/40 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-all min-h-[42px] max-h-32 leading-5"
+                style="overflow-y:auto"
+            />
 
-            <!--  Send button-->
-            <button type="submit" class="inline-flex items-center justify-center rounded-lg md:px-4 md:py-3 p-2 text-white bg-blue-500 hover:bg-blue-400 focus:outline-none ml-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-6 w-6 ml-2 transform rotate-45">
-                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
-                </svg>
+            <button
+                type="button"
+                @click="fileInput.click()"
+                class="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+            >
+                <Paperclip class="w-5 h-5" />
+            </button>
+            <input ref="fileInput" type="file" @input="attachedFile" accept="image/*" class="hidden" />
+
+            <button
+                @click="sendMessage"
+                type="button"
+                :disabled="sending || (!newMessage.trim() && !selectedFile)"
+                class="p-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 shadow-sm"
+            >
+                <Send class="w-5 h-5" />
             </button>
         </div>
-    </form>
+    </div>
 </template>
 
+<style scoped>
+.slide-enter-active, .slide-leave-active { transition: all 0.2s ease; }
+.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-4px); }
+</style>

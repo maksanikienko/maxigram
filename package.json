@@ -24,9 +24,16 @@
     "name": "maxigram",
     "dependencies": {
         "@vitejs/plugin-vue": "^5.1.2",
+        "@vueuse/core": "^14.3.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
         "emoji-picker-element": "^1.22.8",
         "flowbite": "^2.5.2",
         "laravel-echo": "^1.16.1",
+        "lucide-vue-next": "^1.0.0",
+        "radix-vue": "^1.9.17",
+        "tailwind-merge": "^3.5.0",
+        "tailwindcss-animate": "^1.0.7",
         "vue": "latest",
         "vue-router": "^4.4.3"
     }

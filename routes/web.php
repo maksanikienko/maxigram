@@ -1,15 +1,15 @@
 <?php
 
 use App\Http\Controllers\ChatController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-
 Route::get('/', function () {
-    return redirect()->route('get-rooms');
+    if (auth()->check()) {
+        return redirect()->route('get-rooms');
+    }
+    return view('landing');
 })->name('index');
 
 Route::middleware('auth')->group(function () {

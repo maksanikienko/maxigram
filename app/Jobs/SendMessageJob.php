@@ -29,10 +29,6 @@ class SendMessageJob implements ShouldQueue
 
     public function handle()
     {
-        // Broadcast message
-        broadcast(new MessageSent($this->message))->toOthers();
-
-        // You can add other logic here (logging, notifications, etc.)
         Log::info("Message sent: " . $this->message->id);
     }
 }

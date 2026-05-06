@@ -23,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_id',
         'sender_id',
         'recipient_id',
         'created_at',
