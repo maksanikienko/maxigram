@@ -68,7 +68,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="flex h-screen bg-background overflow-hidden">
+    <div class="flex h-dvh bg-background overflow-hidden">
 
         <!-- Sidebar -->
         <aside
@@ -136,7 +136,7 @@ onMounted(() => {
         </Transition>
 
         <!-- Chat area -->
-        <div class="flex flex-col flex-1 min-w-0 bg-white">
+        <div class="flex flex-col flex-1 min-w-0 min-h-0 bg-white overflow-hidden">
 
             <!-- Top bar: hamburger + header -->
             <div class="flex items-stretch border-b border-border">

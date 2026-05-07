@@ -89,7 +89,7 @@ const deleteMsg = async (msg) => {
 <template>
     <div
         ref="messagesContainer"
-        class="flex-1 overflow-y-auto px-4 py-4 space-y-1 scrollbar-thin bg-gradient-to-b from-slate-50/50 to-white"
+        class="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-1 scrollbar-thin bg-gradient-to-b from-slate-50/50 to-white"
     >
         <template v-if="room.messages?.length">
             <template v-for="(msgs, date) in groupByDate(room.messages)" :key="date">

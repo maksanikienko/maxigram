@@ -70,7 +70,8 @@ const onKeydown = (e) => {
 </script>
 
 <template>
-    <div class="shrink-0 px-4 pb-4 pt-2 bg-white border-t border-border">
+    <div class="shrink-0 px-4 pt-2 bg-white border-t border-border"
+         style="padding-bottom: max(1rem, env(safe-area-inset-bottom))">
 
         <!-- Image preview -->
         <Transition name="slide">
