@@ -20,6 +20,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/chat/rooms', [ChatController::class, 'getRooms'])->name('get-rooms');
     Route::get('/chat/room/{room}/messages', [ChatController::class, 'getMessages'])->name('get-messages');
     Route::post('/chat/room/{room}/send', [ChatController::class, 'sendMessages'])->name('send-messages');
+    Route::patch('/chat/message/{message}', [ChatController::class, 'updateMessage'])->name('update-message');
+    Route::delete('/chat/message/{message}', [ChatController::class, 'deleteMessage'])->name('delete-message');
 });
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');

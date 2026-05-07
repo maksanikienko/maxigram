@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import Avatar from '@/Components/ui/Avatar.vue';
 import { Search, MessageSquare } from 'lucide-vue-next';
 
-const props = defineProps(['rooms', 'selectedRoom', 'showFriendsList']);
+const props = defineProps(['rooms', 'selectedRoom', 'showFriendsList', 'unreadCounts']);
 const emit = defineEmits(['selectRoom', 'toggleFriendsList']);
 
 const search = ref('');
@@ -67,16 +67,25 @@ const truncate = (str, n = 32) => str.length > n ? str.slice(0, n) + '…' : str
                             'text-sm font-semibold truncate',
                             selectedRoom?.room_id === room.room_id ? 'text-primary-foreground' : 'text-sidebar-foreground'
                         ]">{{ room.other_user.name }}</span>
-                        <span :class="[
-                            'text-[10px] shrink-0',
-                            selectedRoom?.room_id === room.room_id ? 'text-primary-foreground/70' : 'text-sidebar-foreground/50'
-                        ]">
-                            {{ room.messages?.length ? room.messages[room.messages.length - 1].formatted_time : '' }}
-                        </span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span :class="[
+                                'text-[10px]',
+                                selectedRoom?.room_id === room.room_id ? 'text-primary-foreground/70' : 'text-sidebar-foreground/50'
+                            ]">
+                                {{ room.messages?.length ? room.messages[room.messages.length - 1].formatted_time : '' }}
+                            </span>
+                            <span
+                                v-if="unreadCounts?.[room.room_id] > 0"
+                                class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-400 text-white text-[10px] font-bold leading-none"
+                            >
+                                {{ unreadCounts[room.room_id] > 99 ? '99+' : unreadCounts[room.room_id] }}
+                            </span>
+                        </div>
                     </div>
                     <p :class="[
                         'text-xs truncate mt-0.5',
-                        selectedRoom?.room_id === room.room_id ? 'text-primary-foreground/80' : 'text-sidebar-foreground/60'
+                        selectedRoom?.room_id === room.room_id ? 'text-primary-foreground/80' : 'text-sidebar-foreground/60',
+                        unreadCounts?.[room.room_id] > 0 && selectedRoom?.room_id !== room.room_id ? 'font-semibold text-sidebar-foreground' : ''
                     ]">{{ truncate(lastMessage(room)) }}</p>
                 </div>
             </button>

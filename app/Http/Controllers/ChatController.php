@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageDeleted;
+use App\Events\MessageUpdated;
+use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -38,10 +41,11 @@ class ChatController extends Controller
                 'messages' => $room->messages->map(function ($message) {
                     return [
                         'message_id' => $message->id,
-                        'sender_id' => $message->sender_id,
+                        'sender_id'  => $message->sender_id,
                         'recipient_id' => $message->recipient_id,
-                        'message' => $message->message,
+                        'message'    => $message->message,
                         'picture_url' => $message->picture_url,
+                        'is_edited'  => (bool) $message->is_edited,
                         'formatted_date' => $message->created_at->format('F j, Y'),
                         'formatted_time' => $message->created_at->format('g:i A'),
                     ];
@@ -77,13 +81,45 @@ class ChatController extends Controller
         $message = $messageService->createMessage($sender, $friend, request(), $room->id);
 
         return response()->json([
-            'message_id' => $message->id,
-            'sender_id' => $message->sender_id,
+            'message_id'  => $message->id,
+            'sender_id'   => $message->sender_id,
             'recipient_id' => $message->recipient_id,
-            'message' => $message->message ?? null,
+            'message'     => $message->message ?? null,
             'picture_url' => $message->picture_url ?? null,
+            'is_edited'   => false,
             'formatted_date' => $message->created_at->format('F j, Y'),
             'formatted_time' => $message->created_at->format('g:i A'),
         ]);
+    }
+
+    public function updateMessage(Message $message): JsonResponse
+    {
+        abort_if($message->sender_id !== auth()->id(), 403);
+
+        request()->validate(['message' => 'required|string|max:5000']);
+
+        $message->update([
+            'message'   => request('message'),
+            'is_edited' => true,
+        ]);
+
+        broadcast(new MessageUpdated($message))->toOthers();
+
+        return response()->json([
+            'message_id' => $message->id,
+            'message'    => $message->message,
+            'is_edited'  => true,
+        ]);
+    }
+
+    public function deleteMessage(Message $message): JsonResponse
+    {
+        abort_if($message->sender_id !== auth()->id(), 403);
+
+        broadcast(new MessageDeleted($message))->toOthers();
+
+        $message->delete();
+
+        return response()->json(['message_id' => $message->id]);
     }
 }

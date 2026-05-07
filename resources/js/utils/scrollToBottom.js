@@ -1,8 +1,5 @@
-export const scrollToBottom = (container) => {
+export const scrollToBottom = (container, behavior = 'smooth') => {
     if (container) {
-        container.scrollTo({
-            top: container.scrollHeight,
-            behavior: "smooth",
-        });
+        container.scrollTo({ top: container.scrollHeight, behavior });
     }
 };

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Message extends Model
 {
 
-    protected $fillable = ['room_id', 'sender_id', 'recipient_id', 'message','picture_url'];
+    protected $fillable = ['room_id', 'sender_id', 'recipient_id', 'message', 'picture_url', 'is_edited'];
 
     /**
      * Get the room that the message belongs to.

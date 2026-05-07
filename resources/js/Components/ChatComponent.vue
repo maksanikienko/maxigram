@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue';
 import FriendsList from './parts/FriendsList.vue';
 import GroupsList from './parts/GroupsList.vue';
 import { useStatusHandler } from './../utils/statusHandler.js';
-import { connectToPresenceChannel, connectToPrivateChannel, sendTypingEvent } from './../utils/conectChannel.js';
+import { connectToPresenceChannel, connectToAllPrivateChannels, sendTypingEvent } from './../utils/conectChannel.js';
 import MessengerHeader from '@/Components/parts/MessengerHeader.vue';
 import Messages from '@/Components/parts/Messages.vue';
 import MessageInput from '@/Components/parts/MessageInput.vue';
@@ -17,12 +17,13 @@ const isFriendTypingTimer = ref(null);
 const rooms = ref([...props.rooms]);
 const { loadOnlineStatus, saveOnlineStatus } = useStatusHandler(rooms);
 const showSidebar = ref(true);
+const unreadCounts = ref({});
 
 const selectedRoom = ref({ room_id: '', other_user: {}, messages: [] });
 
 const selectRoom = (room) => {
     selectedRoom.value = room;
-    connectToPrivateChannel(room.room_id, props, selectedRoom, isFriendTyping, isFriendTypingTimer);
+    unreadCounts.value[room.room_id] = 0;
     if (window.innerWidth < 768) showSidebar.value = false;
 };
 
@@ -30,10 +31,39 @@ const handleTyping = () => {
     sendTypingEvent(selectedRoom.value.room_id, props.current_user.id);
 };
 
+const showBrowserNotification = (room, event) => {
+    if (Notification.permission !== 'granted') return;
+    const body = event.message
+        ? event.message.slice(0, 100)
+        : '📷 Image';
+    new Notification(room.other_user.name, {
+        body,
+        icon: room.other_user.image || '/favicon.ico',
+        tag: `room-${room.room_id}`,
+    });
+};
+
+const onNewMessage = (room, event) => {
+    const isCurrentRoom = selectedRoom.value.room_id === room.room_id;
+
+    if (!isCurrentRoom) {
+        unreadCounts.value[room.room_id] = (unreadCounts.value[room.room_id] || 0) + 1;
+    }
+
+    if (!isCurrentRoom || document.hidden) {
+        showBrowserNotification(room, event);
+    }
+};
+
 onMounted(() => {
     if (rooms.value.length) selectRoom(rooms.value[0]);
     connectToPresenceChannel(rooms, saveOnlineStatus);
+    connectToAllPrivateChannels(rooms, props, selectedRoom, isFriendTyping, isFriendTypingTimer, onNewMessage);
     loadOnlineStatus();
+
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
 });
 </script>
 
@@ -68,6 +98,7 @@ onMounted(() => {
                         :rooms="rooms"
                         :selectedRoom="selectedRoom"
                         :showFriendsList="showSidebar"
+                        :unreadCounts="unreadCounts"
                         @selectRoom="selectRoom"
                         @toggleFriendsList="showSidebar = false"
                     />
