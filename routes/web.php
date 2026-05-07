@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -22,6 +23,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/chat/room/{room}/send', [ChatController::class, 'sendMessages'])->name('send-messages');
     Route::patch('/chat/message/{message}', [ChatController::class, 'updateMessage'])->name('update-message');
     Route::delete('/chat/message/{message}', [ChatController::class, 'deleteMessage'])->name('delete-message');
+
+    Route::post('/push/subscribe', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
+    Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 });
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');

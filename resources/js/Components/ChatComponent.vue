@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { subscribeToPush } from '@/utils/pushNotifications.js';
 import FriendsList from './parts/FriendsList.vue';
 import GroupsList from './parts/GroupsList.vue';
 import { useStatusHandler } from './../utils/statusHandler.js';
@@ -31,27 +32,9 @@ const handleTyping = () => {
     sendTypingEvent(selectedRoom.value.room_id, props.current_user.id);
 };
 
-const showBrowserNotification = (room, event) => {
-    if (Notification.permission !== 'granted') return;
-    const body = event.message
-        ? event.message.slice(0, 100)
-        : '📷 Image';
-    new Notification(room.other_user.name, {
-        body,
-        icon: room.other_user.image || '/favicon.ico',
-        tag: `room-${room.room_id}`,
-    });
-};
-
 const onNewMessage = (room, event) => {
-    const isCurrentRoom = selectedRoom.value.room_id === room.room_id;
-
-    if (!isCurrentRoom) {
+    if (selectedRoom.value.room_id !== room.room_id) {
         unreadCounts.value[room.room_id] = (unreadCounts.value[room.room_id] || 0) + 1;
-    }
-
-    if (!isCurrentRoom || document.hidden) {
-        showBrowserNotification(room, event);
     }
 };
 
@@ -60,10 +43,7 @@ onMounted(() => {
     connectToPresenceChannel(rooms, saveOnlineStatus);
     connectToAllPrivateChannels(rooms, props, selectedRoom, isFriendTyping, isFriendTypingTimer, onNewMessage);
     loadOnlineStatus();
-
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
+    subscribeToPush();
 });
 </script>
 

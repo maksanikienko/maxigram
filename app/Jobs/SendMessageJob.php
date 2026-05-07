@@ -2,15 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Events\MessageSent;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\NewMessageNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class SendMessageJob implements ShouldQueue
 {
@@ -27,8 +26,10 @@ class SendMessageJob implements ShouldQueue
         $this->recipient = $recipient;
     }
 
-    public function handle()
+    public function handle(): void
     {
-        Log::info("Message sent: " . $this->message->id);
+        $this->recipient->notify(
+            new NewMessageNotification($this->message, $this->sender)
+        );
     }
 }

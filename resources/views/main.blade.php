@@ -24,7 +24,8 @@
     window.Laravel = {
         csrfToken: '{{ csrf_token() }}',
         logoutUrl: '{{ route('logout') }}',
-        profileUrl: '{{ route('profile.edit') }}'
+        profileUrl: '{{ route('profile.edit') }}',
+        vapidPublicKey: '{{ config('webpush.vapid.public_key') }}'
     };
 </script>
 </body>
