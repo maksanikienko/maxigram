@@ -22,9 +22,10 @@ const toggleEmojiPicker = () => {
     if (!showEmojiPicker.value && emojiButtonRef.value) {
         const rect = emojiButtonRef.value.getBoundingClientRect();
         const pickerWidth = 340;
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
         const leftPos = Math.max(4, Math.min(rect.left, window.innerWidth - pickerWidth - 8));
         pickerStyle.value = {
-            bottom: `${window.innerHeight - rect.top + 8}px`,
+            bottom: `${viewportHeight - rect.top + 8}px`,
             left: `${leftPos}px`,
         };
     }

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { subscribeToPush } from '@/utils/pushNotifications.js';
 import FriendsList from './parts/FriendsList.vue';
 import GroupsList from './parts/GroupsList.vue';
@@ -12,6 +12,14 @@ import Avatar from '@/Components/ui/Avatar.vue';
 import { Menu, X, MessageSquare, Settings, LogOut } from 'lucide-vue-next';
 
 const props = defineProps(['current_user', 'rooms', 'profileUrl']);
+
+// Track real visual viewport height so the keyboard doesn't overlap the input on mobile
+const containerHeight = ref('100dvh');
+const updateViewportHeight = () => {
+    if (window.visualViewport) {
+        containerHeight.value = `${window.visualViewport.height}px`;
+    }
+};
 
 const isFriendTyping = ref(false);
 const isFriendTypingTimer = ref(null);
@@ -44,11 +52,21 @@ onMounted(() => {
     connectToAllPrivateChannels(rooms, props, selectedRoom, isFriendTyping, isFriendTypingTimer, onNewMessage);
     loadOnlineStatus();
     subscribeToPush();
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateViewportHeight);
+        updateViewportHeight();
+    }
+});
+
+onUnmounted(() => {
+    if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updateViewportHeight);
+    }
 });
 </script>
 
 <template>
-    <div class="flex h-dvh bg-background overflow-hidden">
+    <div class="flex bg-background overflow-hidden" :style="{ height: containerHeight }">
 
         <!-- Sidebar -->
         <aside
@@ -131,6 +149,7 @@ onMounted(() => {
                         :room="selectedRoom"
                         :current_user="current_user"
                         :profileUrl="profileUrl"
+                        @back="showSidebar = true"
                     />
                 </div>
             </div>
