@@ -8,27 +8,42 @@ const urlBase64ToUint8Array = (base64String) => {
 };
 
 export const subscribeToPush = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!('serviceWorker' in navigator)) {
+        console.warn('[Push] ServiceWorker not supported');
+        return;
+    }
+    if (!('PushManager' in window)) {
+        console.warn('[Push] PushManager not supported (HTTPS required)');
+        return;
+    }
 
     try {
-        // Register (or reuse) the service worker
         const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        console.info('[Push] SW registered:', registration.scope);
+
         await navigator.serviceWorker.ready;
+        console.info('[Push] SW ready');
 
         const permission = await Notification.requestPermission();
+        console.info('[Push] Notification permission:', permission);
         if (permission !== 'granted') return;
 
         const vapidKey = window.Laravel?.vapidPublicKey;
-        if (!vapidKey) return;
+        if (!vapidKey) {
+            console.error('[Push] vapidPublicKey missing from window.Laravel');
+            return;
+        }
 
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
+        console.info('[Push] Subscribed:', subscription.endpoint);
 
-        await axios.post('/push/subscribe', subscription.toJSON());
+        const { data } = await axios.post('/push/subscribe', subscription.toJSON());
+        console.info('[Push] Subscription saved to server:', data);
     } catch (e) {
-        console.warn('Push subscription failed:', e);
+        console.error('[Push] Failed at step:', e.message, e);
     }
 };
 
