@@ -1,10 +1,10 @@
 <script setup>
-import { nextTick, ref, watch } from "vue";
+import { nextTick, reactive, ref, watch } from "vue";
 import axios from 'axios';
 import Avatar from '@/Components/ui/Avatar.vue';
 import { useModalHandler } from '@/utils/modalHandler.js';
 import { scrollToBottom } from "@/utils/scrollToBottom.js";
-import { X, Pencil, Trash2 } from 'lucide-vue-next';
+import { X, Pencil, Trash2, ImageOff } from 'lucide-vue-next';
 
 const props = defineProps(['room', 'current_user']);
 const { isModalOpen, selectedImageUrl, openModal, closeModal } = useModalHandler();
@@ -72,6 +72,10 @@ const onEditKeydown = (e, msg) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(msg); }
     if (e.key === 'Escape') cancelEdit();
 };
+
+// ── Broken images ────────────────────────────────────────────────────
+const failedImages = reactive(new Set());
+const onImageError = (url) => failedImages.add(url);
 
 // ── Delete ────────────────────────────────────────────────────────────
 const confirmingDelete = ref(null);
@@ -192,13 +196,23 @@ const deleteMsg = async (msg) => {
                                 <!-- Normal view -->
                                 <template v-else>
                                     <p v-if="msg.message" class="text-sm leading-relaxed break-words">{{ msg.message }}</p>
-                                    <img
-                                        v-if="msg.picture_url"
-                                        :src="msg.picture_url"
-                                        alt="Image"
-                                        class="max-w-[220px] max-h-[220px] rounded-xl object-cover cursor-pointer mt-1"
-                                        @click="openModal(msg.picture_url)"
-                                    />
+                                    <template v-if="msg.picture_url">
+                                        <img
+                                            v-if="!failedImages.has(msg.picture_url)"
+                                            :src="msg.picture_url"
+                                            alt="Image"
+                                            class="max-w-[220px] max-h-[220px] rounded-xl object-cover cursor-pointer mt-1"
+                                            @click="openModal(msg.picture_url)"
+                                            @error="onImageError(msg.picture_url)"
+                                        />
+                                        <div
+                                            v-else
+                                            class="flex items-center gap-1.5 mt-1 px-3 py-2 rounded-xl bg-black/10 text-xs opacity-60"
+                                        >
+                                            <ImageOff class="w-3.5 h-3.5 shrink-0" />
+                                            <span>Image not available</span>
+                                        </div>
+                                    </template>
                                     <div :class="[
                                         'flex items-center justify-end gap-1 mt-1',
                                         isOwn(msg) ? 'text-primary-foreground/60' : 'text-muted-foreground'
@@ -246,7 +260,12 @@ const deleteMsg = async (msg) => {
                 <button @click="closeModal" class="absolute -top-10 right-0 text-white/80 hover:text-white transition-colors">
                     <X class="w-6 h-6" />
                 </button>
-                <img :src="selectedImageUrl" alt="Full image" class="w-full h-auto rounded-xl shadow-2xl" />
+                <img
+                    :src="selectedImageUrl"
+                    alt="Full image"
+                    class="w-full h-auto rounded-xl shadow-2xl"
+                    @error="$event.target.style.display='none'"
+                />
             </div>
         </div>
     </Transition>
