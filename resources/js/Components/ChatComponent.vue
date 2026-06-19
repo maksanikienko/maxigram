@@ -10,6 +10,7 @@ import Messages from '@/Components/parts/Messages.vue';
 import MessageInput from '@/Components/parts/MessageInput.vue';
 import Avatar from '@/Components/ui/Avatar.vue';
 import NotificationBell from '@/Components/ui/NotificationBell.vue';
+import PushPermissionBanner from '@/Components/ui/PushPermissionBanner.vue';
 import { Menu, X, MessageSquare, Settings, LogOut } from 'lucide-vue-next';
 
 const props = defineProps(['current_user', 'rooms', 'profileUrl']);
@@ -68,6 +69,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <PushPermissionBanner />
     <div class="flex bg-background overflow-hidden" :style="{ height: containerHeight }">
 
         <!-- Sidebar -->
