@@ -1,4 +1,43 @@
-// Service Worker — handles Web Push notifications
+// Service Worker — PWA lifecycle + Web Push notifications
+
+const CACHE_NAME = 'maxigram-v1';
+
+// ─── Lifecycle ───────────────────────────────────────────────────────────────
+
+self.addEventListener('install', (event) => {
+    // Take control immediately without waiting for old SW to expire
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    // Clean up old caches and claim all clients right away
+    event.waitUntil(
+        caches.keys()
+            .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+            .then(() => self.clients.claim())
+    );
+});
+
+// Network-first fetch — keeps the app working but doesn't break dynamic routes
+self.addEventListener('fetch', (event) => {
+    // Only intercept same-origin GET navigation requests
+    if (
+        event.request.method !== 'GET' ||
+        !event.request.url.startsWith(self.location.origin) ||
+        event.request.mode !== 'navigate'
+    ) {
+        return;
+    }
+
+    event.respondWith(
+        fetch(event.request).catch(() =>
+            // Offline fallback: serve whatever the browser already has cached
+            caches.match(event.request)
+        )
+    );
+});
+
+// ─── Push Notifications ──────────────────────────────────────────────────────
 
 self.addEventListener('push', (event) => {
     if (!event.data) return;
@@ -13,8 +52,8 @@ self.addEventListener('push', (event) => {
     const title   = payload.title  ?? 'Maxigram';
     const options = {
         body:    payload.body    ?? '',
-        icon:    payload.icon    ?? '/favicon.ico',
-        badge:   payload.badge   ?? '/favicon.ico',
+        icon:    payload.icon    ?? '/icons/icon-192.png',
+        badge:   payload.badge   ?? '/icons/icon-192.png',
         data:    payload.data    ?? { url: '/chat/rooms' },
         vibrate: [200, 100, 200],
         requireInteraction: false,
@@ -38,13 +77,11 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Focus an already-open tab
             for (const client of windowClients) {
                 if (new URL(client.url).pathname.startsWith('/chat') && 'focus' in client) {
-                    return client.focus();
+                    return client.navigate(targetUrl).then((c) => c.focus());
                 }
             }
-            // Otherwise open a new tab
             if (clients.openWindow) return clients.openWindow(targetUrl);
         })
     );

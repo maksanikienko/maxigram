@@ -2,13 +2,31 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
+
+        <!-- PWA -->
+        <link rel="manifest" href="/manifest.json">
+        <meta name="theme-color" content="#6366f1">
+
+        <!-- iOS PWA -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'Maxigram') }}">
+        <link rel="apple-touch-icon" href="/icons/icon-192.png">
+        <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
+        <!-- Expose config to JS -->
+        <script>
+            window.Laravel = {
+                vapidPublicKey: '{{ config("webpush.vapid.public_key") }}'
+            };
+        </script>
 
         <!-- Scripts -->
         @routes

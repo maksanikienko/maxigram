@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
-import { subscribeToPush } from '@/utils/pushNotifications.js';
+import { registerServiceWorker } from '@/utils/pushNotifications.js';
 import FriendsList from './parts/FriendsList.vue';
 import GroupsList from './parts/GroupsList.vue';
 import { useStatusHandler } from './../utils/statusHandler.js';
@@ -9,6 +9,7 @@ import MessengerHeader from '@/Components/parts/MessengerHeader.vue';
 import Messages from '@/Components/parts/Messages.vue';
 import MessageInput from '@/Components/parts/MessageInput.vue';
 import Avatar from '@/Components/ui/Avatar.vue';
+import NotificationBell from '@/Components/ui/NotificationBell.vue';
 import { Menu, X, MessageSquare, Settings, LogOut } from 'lucide-vue-next';
 
 const props = defineProps(['current_user', 'rooms', 'profileUrl']);
@@ -51,7 +52,8 @@ onMounted(() => {
     connectToPresenceChannel(rooms, saveOnlineStatus);
     connectToAllPrivateChannels(rooms, props, selectedRoom, isFriendTyping, isFriendTypingTimer, onNewMessage);
     loadOnlineStatus();
-    subscribeToPush();
+    // Register SW early (no user gesture needed) so push is ready when user enables it
+    registerServiceWorker();
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', updateViewportHeight);
         updateViewportHeight();
@@ -116,6 +118,7 @@ onUnmounted(() => {
                             <p class="text-sidebar-foreground/50 text-xs truncate">{{ current_user.email }}</p>
                         </div>
                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <NotificationBell />
                             <a :href="profileUrl" class="p-1.5 rounded-lg hover:bg-white/10 text-sidebar-foreground/60 hover:text-sidebar-foreground">
                                 <Settings class="w-4 h-4" />
                             </a>
