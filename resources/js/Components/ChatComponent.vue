@@ -117,7 +117,7 @@ onUnmounted(() => {
                             <p class="text-sidebar-foreground text-sm font-semibold truncate">{{ current_user.name }}</p>
                             <p class="text-sidebar-foreground/50 text-xs truncate">{{ current_user.email }}</p>
                         </div>
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="flex gap-1">
                             <NotificationBell />
                             <a :href="profileUrl" class="p-1.5 rounded-lg hover:bg-white/10 text-sidebar-foreground/60 hover:text-sidebar-foreground">
                                 <Settings class="w-4 h-4" />
