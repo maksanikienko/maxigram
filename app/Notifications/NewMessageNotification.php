@@ -26,11 +26,11 @@ class NewMessageNotification extends Notification
             ? mb_substr($this->message->message, 0, 120)
             : '📷 Image';
 
-        return WebPushMessage::create()
+        return (new WebPushMessage())
             ->title($this->sender->name)
             ->body($body)
-            ->icon($this->sender->image ?: '/favicon.ico')
-            ->badge('/favicon.ico')
+            ->icon($this->sender->image ?: '/icons/icon-192.png')
+            ->badge('/icons/icon-192.png')
             ->data(['url' => '/chat/rooms']);
     }
 }
