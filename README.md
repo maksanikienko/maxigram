@@ -1,66 +1,162 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Maxigram
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A real-time messaging application, built with Laravel 11, Vue 3, Inertia.js, and Laravel Reverb (WebSocket).
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- One-to-one private messaging with real-time delivery
+- Group chats with member management
+- Image attachments with lightbox preview
+- Emoji picker
+- Typing indicators
+- Online/offline presence status
+- PWA notifications
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Layer | Technology |
+|---|---|
+| Backend | Laravel 11.9, PHP 8.2+ |
+| Frontend | Vue 3.4, Inertia.js, Vite 5.4 |
+| Real-time | Laravel Reverb (WebSocket) + Laravel Echo |
+| Auth | Laravel Sanctum + Laravel Breeze |
+| Styling | Tailwind CSS 3 |
+| Queue | Database driver |
+| Database | SQLite (dev) / MySQL (prod) |
 
-## Learning Laravel
+## Requirements
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- PHP 8.2+
+- Composer
+- Node.js 18+
+- npm
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Installation
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+git clone https://github.com/your-username/maxigram.git
+cd maxigram
 
-## Laravel Sponsors
+composer install
+npm install
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+cp .env.example .env
+php artisan key:generate
+```
 
-### Premium Partners
+Configure your `.env` file (see [Environment Variables](#environment-variables)), then run migrations:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+php artisan migrate
+# or with seed data:
+php artisan migrate:fresh --seed
+```
 
-## Contributing
+## Running Locally
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+You need four processes running simultaneously:
 
-## Code of Conduct
+```bash
+# 1. Backend server
+php artisan serve
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# 2. Frontend dev server (Vite)
+npm run dev
 
-## Security Vulnerabilities
+# 3. WebSocket server (Reverb)
+php artisan reverb:start
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 4. Queue worker
+php artisan queue:work
+```
+
+Then open [http://localhost:8000](http://localhost:8000).
+
+## Environment Variables
+
+Key variables to configure in `.env`:
+
+```env
+BROADCAST_CONNECTION=reverb
+QUEUE_CONNECTION=database
+
+# Database
+DB_CONNECTION=sqlite          # or mysql for production
+
+# Laravel Reverb
+REVERB_APP_ID=your-app-id
+REVERB_APP_KEY=your-app-key
+REVERB_APP_SECRET=your-app-secret
+REVERB_HOST=localhost
+REVERB_PORT=8080
+
+# Vite (client-side)
+VITE_REVERB_APP_KEY=your-app-key
+VITE_REVERB_HOST=localhost
+VITE_REVERB_PORT=8080
+VITE_REVERB_SCHEME=http
+```
+
+> Set `BROADCAST_CONNECTION=log` to disable WebSocket during development.
+
+## Project Structure
+
+```
+app/
+├── Events/           # MessageSent, GroupMessageSent broadcast events
+├── Http/Controllers/ # ChatController, GroupController, ProfileController
+├── Jobs/             # SendMessageJob — queued message dispatch
+├── Models/           # User, Room, Message, ChatGroup, GroupMessage
+└── Services/         # MessageService — message creation logic
+
+resources/js/
+├── Components/
+│   ├── ChatComponent.vue       # Root chat component
+│   └── parts/
+│       ├── FriendsList.vue     # One-to-one chat list with presence
+│       ├── GroupsList.vue      # Group list + create group
+│       ├── Messages.vue        # Message feed + image lightbox
+│       ├── MessageInput.vue    # Input field + emoji + file attach
+│       └── MessengerHeader.vue # Active chat header
+└── utils/
+    ├── conectChannel.js        # WebSocket subscriptions + typing whisper
+    ├── statusHandler.js        # Online/offline status
+    ├── fileHandler.js          # Image attachment handling
+    ├── emojiPicker.js          # Emoji picker composable
+    ├── modalHandler.js         # Image lightbox
+    └── scrollToBottom.js       # Auto-scroll to latest message
+```
+
+## API Routes
+
+### Web (Inertia)
+
+| Method | URL | Description |
+|---|---|---|
+| GET | `/chat/rooms` | List chat rooms |
+| GET | `/chat/room/{room}/messages` | Room message history |
+| POST | `/chat/room/{room}/send` | Send a message |
+
+### API — Groups
+
+| Method | URL | Description |
+|---|---|---|
+| GET | `/api/groups/get` | List groups |
+| POST | `/api/groups/create` | Create a group |
+| POST | `/api/groups/add/{groupId}/members` | Add member |
+| GET | `/api/groups/get/{groupId}/messages` | Group message history |
+| POST | `/api/groups/send/{groupId}/messages` | Send group message |
+
+## Building for Production
+
+```bash
+npm run build
+php artisan config:cache
+php artisan route:cache
+```
+
+Use a process manager (e.g. Supervisor) to keep `reverb:start` and `queue:work` running.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
